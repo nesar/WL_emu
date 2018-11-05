@@ -108,7 +108,7 @@ z = (0.0)*np.ones(shape=totalFiles)
 
 
 
-para4 = np.vstack( (w0, w0wa, omega_nu, z))
+para4 = np.vstack( (w0, wa, omega_nu, z))
 
 emu_combinations = np.hstack( (AllCombinations, para4.T))
 

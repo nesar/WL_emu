@@ -6,7 +6,7 @@ import SetPub
 SetPub.set_pub()
 
 
-fileList = glob.glob('../../Pk_data/CosmicEmu-master/P_cb/EMU*.txt')
+fileList = glob.glob('../../Pk_data/CosmicEmu-master/P_tot/EMU*.txt')
 
 #plt.figure(1)
 
@@ -204,22 +204,22 @@ for i in range(totalFiles):
     # #---------------------------------------------------
 
     for j, (redshift, line) in enumerate(zip(z, ['-', '--'])):
-        ax0.loglog(kh, pk[j, :]*r, color='k', ls='-.', alpha=0.3)  # check multiplication by r
-        ax0.loglog(kh_nonlin, pk_nonlin[j, :]*r, color='b', ls=line, alpha=0.3)
+        #ax0.loglog(kh*para5[i,3], (pk[j, :]*r)/(para5[i,3]**3), color='k', ls='-.', alpha=0.3)  # check multiplication by r
+        ax0.loglog(kh_nonlin*para5[i,3], (pk_nonlin[j, :]*r)/(para5[i,3]**3), color='b', ls=line, alpha=0.3)
 
         kPk = np.loadtxt(fileList[i])
-        ax0.loglog(kPk[:,0]/para5[i, 3], kPk[:,1], 'r', alpha = 0.3)  # check k/h and P(k/h) issue /para5[i, 3]
+        ax0.loglog(kPk[:,0], kPk[:,1], 'r', alpha = 0.3)  # check k/h and P(k/h) issue /para5[i, 3]
 
-        ax1.loglog(kPk[:,0]/para5[i, 3], kPk[:,1]/(pk_nonlin[j, :]*r), 'b', alpha = 0.3)
+        ax1.loglog(kPk[:,0], (kPk[:,1]/(pk_nonlin[j, :]*r))/(para5[i,3]**3), 'b', alpha = 0.3)
 
 
 
 
     ax0.set_xlabel(r'$k/h$ Mpc', fontsize=16);
     ax0.set_ylabel(r'$P(k/h)$', fontsize=16);
-    ax0.legend(['linear', 'non-linear: Halofit', 'nonlinear: CosmicEmu'], loc='lower left');
- 
-    ax1.set_xlabel(r'$k$ Mpc/h', fontsize=16)
+    ax0.legend(['linear', 'non-linear: Halofit', 'non-linear: CosmicEmu'], loc='lower left');
+
+    ax1.set_xlabel(r'$k$ ', fontsize=16)
     ax1.set_ylabel(r'$P(k)^{emu}$/$P(k)^{halofit}$', fontsize=16)
     # plt.title('Matter power at z=%s and z= %s' % tuple(z));
 
@@ -236,30 +236,30 @@ for i in range(totalFiles):
 
 
 def hmf_halofit():
-				#https://github.com/steven-murray/hmf/blob/master/development/halofit_testing.ipynb
-				from hmf.transfer import Transfer
+   #https://github.com/steven-murray/hmf/blob/master/development/halofit_testing.ipynb
+   from hmf.transfer import Transfer
 
 
-				teh_nl_tk = Transfer(transfer_model="EH", takahashi=True, z=0.0)
-				teh_nl_ntk = Transfer(transfer_model="EH", takahashi=False, z=0.0)
+   teh_nl_tk = Transfer(transfer_model="EH", takahashi=True, z=0.0)
+   teh_nl_ntk = Transfer(transfer_model="EH", takahashi=False, z=0.0)
 
-				teh_nl_tk.update(z=0)
+   teh_nl_tk.update(z=0)
 
 
-				#plt.plot(teh_nl_tk.k, np.abs(teh_nl_ntk.nonlinear_power/teh_nl_tk.nonlinear_power -1))
-				ax0.loglog(teh_nl_ntk.k, teh_nl_ntk.nonlinear_power, 'k--')
-				ax0.loglog(teh_nl_ntk.k, teh_nl_ntk.power, 'k-.')
+   #plt.plot(teh_nl_tk.k, np.abs(teh_nl_ntk.nonlinear_power/teh_nl_tk.nonlinear_power -1))
+   ax0.loglog(teh_nl_ntk.k, teh_nl_ntk.nonlinear_power, 'k--')
+   ax0.loglog(teh_nl_ntk.k, teh_nl_ntk.power, 'k-.')
 
-				#plt.xscale('log')
-				#plt.yscale('log')
-				#plt.grid(True)
+#plt.xscale('log')
+#plt.yscale('log')
+#plt.grid(True)
 
 
 
 
 				
 
-hmf_halofit()
+#hmf_halofit()
 
 
 plt.show()
