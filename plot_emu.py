@@ -80,7 +80,7 @@ https://wiki.cosmos.esa.int/planckpla2015/index.php/CMB_spectrum_%26_Likelihood_
 
 numpara = 5
 # ndim = 2551
-totalFiles =  8
+totalFiles =  2
 # lmax0 = 2500
 
 
@@ -203,9 +203,22 @@ for i in range(totalFiles):
     # r = 1
     # #---------------------------------------------------
 
+    camb.set_halofit_version('takahashi')
+    kh_nonlin_takahashi, _, pk_takahashi = results.get_nonlinear_matter_power_spectrum(params=pars)
+    camb.set_halofit_version('mead')
+    kh_nonlin_mead, _, pk_mead = results.get_nonlinear_matter_power_spectrum(params=pars)
+
+
+
+
+
     for j, (redshift, line) in enumerate(zip(z, ['-', '--'])):
-        #ax0.loglog(kh*para5[i,3], (pk[j, :]*r)/(para5[i,3]**3), color='k', ls='-.', alpha=0.3)  # check multiplication by r
+        ax0.loglog(kh*para5[i,3], (pk[j, :]*r)/(para5[i,3]**3), color='k', ls='-.', alpha=0.3)  # check multiplication by r
         ax0.loglog(kh_nonlin*para5[i,3], (pk_nonlin[j, :]*r)/(para5[i,3]**3), color='b', ls=line, alpha=0.3)
+        ax0.loglog(kh_nonlin_takahashi*para5[i,3], (pk_takahashi[j, :]*r)/(para5[i,3]**3), color='orange', ls=line, alpha=0.3)
+        ax0.loglog(kh_nonlin_mead*para5[i,3], (pk_mead[j, :]*r)/(para5[i,3]**3), color='green', ls=line, alpha=0.3)
+
+
 
         kPk = np.loadtxt(fileList[i])
         ax0.loglog(kPk[:,0], kPk[:,1], 'r', alpha = 0.3)  # check k/h and P(k/h) issue /para5[i, 3]
@@ -217,7 +230,7 @@ for i in range(totalFiles):
 
     ax0.set_xlabel(r'$k/h$ Mpc', fontsize=16);
     ax0.set_ylabel(r'$P(k/h)$', fontsize=16);
-    ax0.legend(['linear', 'non-linear: Halofit', 'non-linear: CosmicEmu'], loc='lower left');
+    ax0.legend(['linear', 'non-linear: Halofit', 'Takahasi', 'Mead', 'non-linear: CosmicEmu'], loc='lower left');
 
     ax1.set_xlabel(r'$k$ ', fontsize=16)
     ax1.set_ylabel(r'$P(k)^{emu}$/$P(k)^{halofit}$', fontsize=16)
@@ -256,10 +269,24 @@ def hmf_halofit():
 
 
 
+def takahasi():
+    #The non-linear model can be changed like this:
+    camb.set_halofit_version('takahashi')
+    kh_nonlin, _, pk_takahashi = results.get_nonlinear_matter_power_spectrum(params=pars)
+    camb.set_halofit_version('mead')
+    kh_nonlin, _, pk_mead = results.get_nonlinear_matter_power_spectrum(params=pars)
+
+    fig, axs=plt.subplots(2,1, sharex=True, figsize=(8,8))
+    ax0.loglog(kh_nonlin*para5[i,3], pk_takahashi[0]/(para5[i,3]**3))
+    ax0.loglog(kh_nonlin*para5[i,3], pk_mead[0]/(para5[i,3]**3))
+    axs[1].semilogx(kh_nonlin, pk_mead[0]/pk_takahashi[0]-1)
+    axs[1].set_xlabel(r'$k/h\, \rm{Mpc}$')    
+    axs[1].legend(['Mead/Takahashi-1'], loc='upper left');
+
 
 				
 
 #hmf_halofit()
-
+#takahasi()
 
 plt.show()

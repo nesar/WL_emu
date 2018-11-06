@@ -22,7 +22,7 @@ SetPub.set_pub()
 
 # nsize = 2
 # totalFiles = nsize**5 #32
-totalFiles = 8
+totalFiles = 2
 
 np.random.seed(7)
 
@@ -102,7 +102,7 @@ print(AllCombinations)
 w0 = -1.0*np.ones(shape=totalFiles)
 wa = (0.0)*np.ones(shape=totalFiles) 
 w0wa = ((-1*w0 - wa)**(1./4.))#*np.ones(shape=totalFiles)
-w0wa = 0.99*np.ones(shape=totalFiles)
+#w0wa = 0.99*np.ones(shape=totalFiles)
 omega_nu = (0.0)*np.ones(shape=totalFiles)
 z = (0.0)*np.ones(shape=totalFiles)
 
