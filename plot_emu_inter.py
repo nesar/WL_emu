@@ -30,8 +30,9 @@ ell_max = 1000
 # ndim = lmax0 + 1
 
 ndim = 351
-z_range = [0.,]
+z_range = [0, 0.3, 0.5, 0.9 ,1.0]
 
+z_range = [0.0, ]
 
 fileList = glob.glob('../../Pk_data/CosmicEmu-master/P_tot/EMU*.txt')
 
@@ -109,19 +110,19 @@ for i in range(totalFiles):
 
 
     #-------- sigma_8 --------------------------
-    pars.set_matter_power(redshifts=z_range, kmax=7.0)
+    pars.set_matter_power(redshifts=z_range, kmax=10.0)
     # Linear spectra
     pars.NonLinear = model.NonLinear_none
     
     
     results = camb.get_results(pars)
-    kh, z, pk = results.get_matter_power_spectrum(minkh=1e-3*para5[i,3], maxkh=5*para5[i,3], npoints = ndim)
+    kh, z, pk = results.get_matter_power_spectrum(minkh=1e-3/para5[i,3], maxkh=5/para5[i,3], npoints = ndim)
     s8 = np.array(results.get_sigma8())
 
     # Non-Linear spectra (Halofit)
     pars.NonLinear = model.NonLinear_both
     results.calc_power_spectra(pars)
-    kh_nonlin, z_nonlin, pk_nonlin = results.get_matter_power_spectrum(minkh=1e-3*para5[i,3], maxkh=5*para5[i,3], npoints=ndim)
+    kh_nonlin, z_nonlin, pk_nonlin = results.get_matter_power_spectrum(minkh=1e-3/para5[i,3], maxkh=5/para5[i,3], npoints=ndim)
     #kh_nonlin, z_nonlin, pk_nonlin = results.get_matter_power_interpolator(nonlinear=True, var1=None, var2=None, hubble_units=True, k_hunit=False, return_z_k=True, log_interp=True, extrap_kmax=None)
 
     sigma8_camb = results.get_sigma8()  # present value of sigma_8 --- check kman, mikh etc
@@ -255,6 +256,7 @@ def get_interpolated():
     k=np.exp(np.log(10)*np.linspace(-4,5,1000))
     #zplot = [0, 0.5, 1, 4 ,20]
     zplot = [0.0]
+    #zplot = [0, 0.3, 0.5, 0.9 ,1.0]
     for z in zplot:
         ax0.loglog(k, PK.P(z,k))
         #plt.xlim([1e-4,kmax])
