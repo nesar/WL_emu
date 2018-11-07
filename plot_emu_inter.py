@@ -5,62 +5,6 @@ import SetPub
 
 SetPub.set_pub()
 
-
-fileList = glob.glob('../../Pk_data/CosmicEmu-master/P_tot/EMU*.txt')
-
-#plt.figure(1)
-
-#for fileIn in fileList:
-#    kPk = np.loadtxt(fileIn)
-#    plt.plot(kPk[:,0], kPk[:,1], 'b', alpha = 0.3)
-
-
-#plt.loglog()
-#plt.xlabel(r'$k$ [h/Mpc]', fontsize=16)
-#plt.ylabel(r'$P(k)$', fontsize=16)
-
-#plt.show()
-
-
-
-#lhd = np.loadtxt('../CosmicEmu-master/P_cb/xstar.dat')
-
-
-#AllLabels = AllLabels = [r'$\tilde{\Omega}_m$', r'$\tilde{\Omega}_b$', r'$\tilde{h}$',
-#                     r'$\tilde{n}_s$', 'a', 'b', 'c', 'd', 'e']
-
-
-'''
-print lhd.shape
-plt.figure(32)
-
-##
-f, a = plt.subplots(8, 8, sharex=True, sharey=True)
-plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=None, hspace=None)
-plt.rcParams.update({'font.size': 8})
-
-for i in range(8):
-    for j in range(i+1):
-        print(i,j)
-        if(i!=j):
-            a[i, j].scatter(lhd[:, i], lhd[:, j], s=20)
-            a[i, j].grid(True)
-        else:
-            a[i, i].text(0.4, 0.4, AllLabels[i], size = 'xx-large')
-            hist, bin_edges = np.histogram(lhd[:,i], density=True, bins=64)
-            a[i,i].bar(bin_edges[:-1], hist/hist.max(), width=0.2)
-            #plt.xlim(0,1)
-            #plt.ylim(0,1)
-
-plt.show()
-
-
-'''
-
-
-
-
-
 import numpy as np
 import camb
 import itertools
@@ -70,16 +14,11 @@ import matplotlib.pylab as plt
 import time
 time0 = time.time()
 
-"""
-first 2 outputs from CAMB - totCL and unlensed CL both are 0's. 
-CAMBFast maybe better?
-CosmoMC works well with CAMB
-http://camb.readthedocs.io/en/latest/CAMBdemo.html
-https://wiki.cosmos.esa.int/planckpla2015/index.php/CMB_spectrum_%26_Likelihood_Code
-"""
+
+
 
 numpara = 5
-# ndim = 2551
+
 totalFiles =  2
 # lmax0 = 2500
 
@@ -94,51 +33,39 @@ ndim = 351
 z_range = [0.,]
 
 
+fileList = glob.glob('../../Pk_data/CosmicEmu-master/P_tot/EMU*.txt')
+
+def plot_latin(fileIn):
+    lhd = np.loadtxt(fileIn)
 
 
-#para5 = np.loadtxt('../Cl_data/Data/LatinCosmoP5'+str(totalFiles)+'.txt')
+    AllLabels = AllLabels = [r'$\tilde{\Omega}_m$', r'$\tilde{\Omega}_b$', r'$\tilde{h}$',
+                  r'$\tilde{n}_s$', 'a', 'b', 'c', 'd', 'e']
+
+    print lhd.shape
+    plt.figure(32)
+
+    f, a = plt.subplots(8, 8, sharex=True, sharey=True)
+    plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=None, hspace=None)
+    plt.rcParams.update({'font.size': 8})
+
+    for i in range(8):
+        for j in range(i+1):
+            print(i,j)
+            if(i!=j):
+                a[i, j].scatter(lhd[:, i], lhd[:, j], s=20)
+                a[i, j].grid(True)
+            else:
+                a[i, i].text(0.4, 0.4, AllLabels[i], size = 'xx-large')
+                hist, bin_edges = np.histogram(lhd[:,i], density=True, bins=64)
+                a[i,i].bar(bin_edges[:-1], hist/hist.max(), width=0.2)
+                #plt.xlim(0,1)
+                #plt.ylim(0,1)
+
+    plt.show()
+
 
 para5 = np.loadtxt('../../Pk_data/CosmicEmu-master/P_cb/xstar_halofit.dat')#[:totalFiles]
-
-# print(para5)
-
-'''
-
-f, a = plt.subplots(5, 5, sharex=True, sharey=True)
-plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=None, hspace=None)
-plt.rcParams.update({'font.size': 8})
-
-
-AllLabels = [r'$\tilde{\Omega}_m$', r'$\tilde{\Omega}_b$', r'$\tilde{\sigma}_8$', r'$\tilde{h}$',
-             r'$\tilde{n}_s$'] ### n_eff, mass nutrino -- tau
-
-
-
-for i in range(5):
-    for j in range(i+1):
-        print(i,j)
-        # a[i,j].set_xlabel(AllLabels[i])
-        # a[i,j].set_ylabel(AllLabels[j])
-        if(i!=j):
-            a[i, j].scatter(para5[:, i], para5[:, j], s=10)
-            a[i, j].grid(True)
-        else:
-            # a[i,i].set_title(AllLabels[i])
-            a[i, i].text(0.4, 0.4, AllLabels[i], size = 'xx-large')
-            hist, bin_edges = np.histogram(para5[:,i], density=True, bins=64)
-            # a[i,i].bar(hist)
-            a[i,i].bar(bin_edges[:-1], hist/hist.max(), width=0.2)
-            # plt.xlim(0,1)
-            # plt.ylim(0,1)
-
-            # n, bins, patches = a[i,i].hist(lhd[:,i], bins = 'auto', facecolor='b', alpha=0.25)
-            # a[i, i].plot(lhd[:, i], 'go')
-
-#plt.savefig('LatinSq.png', figsize=(10, 10))
-
-
-plt.show()
-'''
 
 
 
@@ -166,7 +93,7 @@ for i in range(totalFiles):
     # pars.set_cosmology(H0=100*para5[i, 2], ombh2=para5[i, 1], omch2=para5[i, 0], mnu=0.06, omk=0,
     #                    tau=0.06)
 
-    pars.set_cosmology(H0=100*para5[i, 3], ombh2=para5[i, 1], omch2=para5[i, 0], mnu=0.06, omk=0,
+    pars.set_cosmology(H0=100*para5[i, 3], ombh2=para5[i, 1], omch2=para5[i, 0] - para5[i, 1], mnu=0.06, omk=0,
                        tau=0.06)
 				
 
@@ -180,18 +107,21 @@ for i in range(totalFiles):
 
 
 
+
     #-------- sigma_8 --------------------------
     pars.set_matter_power(redshifts=z_range, kmax=7.0)
     # Linear spectra
     pars.NonLinear = model.NonLinear_none
+    
+    
     results = camb.get_results(pars)
-    kh, z, pk = results.get_matter_power_spectrum(minkh=1e-3, maxkh=5, npoints = ndim)
+    kh, z, pk = results.get_matter_power_spectrum(minkh=1e-3*para5[i,3], maxkh=5*para5[i,3], npoints = ndim)
     s8 = np.array(results.get_sigma8())
 
     # Non-Linear spectra (Halofit)
     pars.NonLinear = model.NonLinear_both
     results.calc_power_spectra(pars)
-    kh_nonlin, z_nonlin, pk_nonlin = results.get_matter_power_spectrum(minkh=1e-3, maxkh=5, npoints=ndim)
+    kh_nonlin, z_nonlin, pk_nonlin = results.get_matter_power_spectrum(minkh=1e-3*para5[i,3], maxkh=5*para5[i,3], npoints=ndim)
     #kh_nonlin, z_nonlin, pk_nonlin = results.get_matter_power_interpolator(nonlinear=True, var1=None, var2=None, hubble_units=True, k_hunit=False, return_z_k=True, log_interp=True, extrap_kmax=None)
 
     sigma8_camb = results.get_sigma8()  # present value of sigma_8 --- check kman, mikh etc
@@ -200,7 +130,7 @@ for i in range(totalFiles):
     sigma8_input = para5[i, 2]
 
     r = (sigma8_input ** 2) / (sigma8_camb ** 2) # rescale factor
-    # r = 1
+    r = 1
     # #---------------------------------------------------
 
     camb.set_halofit_version('takahashi')
@@ -213,11 +143,11 @@ for i in range(totalFiles):
 
 
     for j, (redshift, line) in enumerate(zip(z, ['-', '--'])):
-        ax0.loglog(kh*para5[i,3], (pk[j, :]*r)/(para5[i,3]**3), color='k', ls='-.', alpha=0.3)  # check multiplication by r
+        ax0.loglog(kh*para5[i,3], (pk[j, :]*r)/(para5[i,3]**3), color='k', ls='--', alpha=0.3)  # check multiplication by r
         ax0.loglog(kh_nonlin*para5[i,3], (pk_nonlin[j, :]*r)/(para5[i,3]**3), color='b', ls=line, alpha=0.3)
         ax0.loglog(kh_nonlin_takahashi*para5[i,3], (pk_takahashi[j, :]*r)/(para5[i,3]**3), color='orange', ls=line, alpha=0.3)
         ax0.loglog(kh_nonlin_mead*para5[i,3], (pk_mead[j, :]*r)/(para5[i,3]**3), color='green', ls=line, alpha=0.3)
-
+        
 
 
         kPk = np.loadtxt(fileList[i])
@@ -225,6 +155,8 @@ for i in range(totalFiles):
 
         ax1.loglog(kPk[:,0], (kPk[:,1]/(pk_nonlin[j, :]*r))/(para5[i,3]**3), 'b', alpha = 0.3)
 
+
+        
 
 
 
@@ -315,13 +247,14 @@ def get_interpolated():
 
     #PK = camb.get_matter_power_interpolator(pars, nonlinear=True,hubble_units=False, k_hunit=False, kmax=kmax,var1=model.Transfer_Weyl,var2=model.Transfer_Weyl, zmax=zs[-1])
 
-    PK = camb.get_matter_power_interpolator(pars, nonlinear=True, hubble_units=False, k_hunit=False, kmax=kmax)
+    PK = camb.get_matter_power_interpolator(pars, nonlinear=True, hubble_units=False, k_hunit=False, kmax=kmax, zmax = zs[-1]) 
 
     #Have a look at interpolated power spectrum results for a range of redshifts
     #Expect linear potentials to decay a bit when Lambda becomes important, and change from non-linear growth
     plt.figure(figsize=(8,5))
     k=np.exp(np.log(10)*np.linspace(-4,5,1000))
-    zplot = [0, 0.5, 1, 4 ,20]
+    #zplot = [0, 0.5, 1, 4 ,20]
+    zplot = [0.0]
     for z in zplot:
         ax0.loglog(k, PK.P(z,k))
         #plt.xlim([1e-4,kmax])
