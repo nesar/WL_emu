@@ -94,8 +94,7 @@ for i in range(totalFiles):
     # pars.set_cosmology(H0=100*para5[i, 2], ombh2=para5[i, 1], omch2=para5[i, 0], mnu=0.06, omk=0,
     #                    tau=0.06)
 
-    pars.set_cosmology(H0=100*para5[i, 3], ombh2=para5[i, 1], omch2=para5[i, 0] - para5[i, 1], mnu=0.06, omk=0,
-                       tau=0.06)
+    pars.set_cosmology(H0=100*para5[i, 3], ombh2=para5[i, 1], omch2=para5[i, 0] - para5[i, 1], mnu=0.0, omk=0, tau=0.0)
 				
 
     pars.set_dark_energy(w=-1.0, sound_speed=1.0, dark_energy_model='fluid')
@@ -131,7 +130,7 @@ for i in range(totalFiles):
     sigma8_input = para5[i, 2]
 
     r = (sigma8_input ** 2) / (sigma8_camb ** 2) # rescale factor
-    r = 1
+    #r = 1
     # #---------------------------------------------------
 
     camb.set_halofit_version('takahashi')
@@ -145,16 +144,16 @@ for i in range(totalFiles):
 
     for j, (redshift, line) in enumerate(zip(z, ['-', '--'])):
         ax0.loglog(kh*para5[i,3], (pk[j, :]*r)/(para5[i,3]**3), color='k', ls='--', alpha=0.3)  # check multiplication by r
-        ax0.loglog(kh_nonlin*para5[i,3], (pk_nonlin[j, :]*r)/(para5[i,3]**3), color='b', ls=line, alpha=0.3)
-        ax0.loglog(kh_nonlin_takahashi*para5[i,3], (pk_takahashi[j, :]*r)/(para5[i,3]**3), color='orange', ls=line, alpha=0.3)
-        ax0.loglog(kh_nonlin_mead*para5[i,3], (pk_mead[j, :]*r)/(para5[i,3]**3), color='green', ls=line, alpha=0.3)
+        ax0.loglog(kh_nonlin*para5[i,3], (pk_nonlin[j, :]*r)/(para5[i,3]**3), color='b', ls=line, alpha=0.6)
+        ax0.loglog(kh_nonlin_takahashi*para5[i,3], (pk_takahashi[j, :]*r)/(para5[i,3]**3), color='orange', ls=line, alpha=0.6)
+        ax0.loglog(kh_nonlin_mead*para5[i,3], (pk_mead[j, :]*r)/(para5[i,3]**3), color='green', ls=line, alpha=0.6)
         
 
 
         kPk = np.loadtxt(fileList[i])
-        ax0.loglog(kPk[:,0], kPk[:,1], 'r-.', alpha = 0.9, lw = 2 )  # check k/h and P(k/h) issue /para5[i, 3]
+        ax0.loglog(kPk[:,0], kPk[:,1], 'r-.', alpha = 0.8, lw = 1.5)  # check k/h and P(k/h) issue /para5[i, 3]
 
-        ax1.loglog(kPk[:,0], (kPk[:,1]/(pk_nonlin[j, :]*r))/(para5[i,3]**3), 'b', alpha = 0.3)
+        #ax1.loglog(kPk[:,0], (kPk[:,1]/(pk_nonlin[j, :]*r))/(para5[i,3]**3), 'b', alpha = 0.6)
 
 
         
@@ -229,8 +228,20 @@ def get_interpolated():
     kmax=10  #kmax to use
     #First set up parameters as usual
     pars = camb.CAMBparams()
-    pars.set_cosmology(H0=67.5, ombh2=0.022, omch2=0.122)
-    pars.InitPower.set_params(ns=0.965)
+    #pars.set_cosmology(H0=67.5, ombh2=0.022, omch2=0.122)
+    #pars.InitPower.set_params(ns=0.965)
+
+
+    pars.set_cosmology(H0=100*para5[i, 3], ombh2=para5[i, 1], omch2=para5[i, 0] - para5[i, 1], mnu=0.0, omk=0, tau=0.0)
+				
+
+    pars.set_dark_energy(w=-1.0, sound_speed=1.0, dark_energy_model='fluid')
+
+    # pars.set_dark_energy()  # re-set defaults
+
+    pars.InitPower.set_params(ns=para5[i, 4], r=0)
+    # pars.set_for_lmax(lmax, lens_potential_accuracy=0);
+
 
     #For Limber result, want integration over \chi (comoving radial distance), from 0 to chi_*.
     #so get background results to find chistar, set up arrage in chi, and calculate corresponding redshifts
@@ -250,27 +261,38 @@ def get_interpolated():
 
     PK = camb.get_matter_power_interpolator(pars, nonlinear=True, hubble_units=False, k_hunit=False, kmax=kmax, zmax = zs[-1]) 
 
+    sigma8_camb = results.get_sigma8()  # present value of sigma_8 --- check kman, mikh etc
+    #---------------------------------------------------
+
+    sigma8_input = para5[i, 2]
+
+    r = (sigma8_input ** 2) / (sigma8_camb ** 2) # rescale factor
+
     #Have a look at interpolated power spectrum results for a range of redshifts
     #Expect linear potentials to decay a bit when Lambda becomes important, and change from non-linear growth
     plt.figure(figsize=(8,5))
-    k=np.exp(np.log(10)*np.linspace(-4,5,1000))
+    #k=np.exp(np.log(10)*np.linspace(-4,5,1000))
+    k = kPk[:,0]
     #zplot = [0, 0.5, 1, 4 ,20]
     zplot = [0.0]
     #zplot = [0, 0.3, 0.5, 0.9 ,1.0]
     for z in zplot:
-        ax0.loglog(k, PK.P(z,k))
+        ax0.loglog(k, r*PK.P(z,k))
         #plt.xlim([1e-4,kmax])
         #plt.xlabel('k Mpc')
         #plt.ylabel('$P_\Psi\, Mpc^{-3}$')
         plt.legend(['z=%s'%z for z in zplot]);
         #plt.show()
+        ax1.plot(k, kPk[:,1]/(r*PK.P(z,k))
+        ax1.set_xscale('log')
+        ax0.set_xlim(kPk[0,0], kPk[-1,0])
 
 
 
 
 
 #hmf_halofit()
-takahasi()
+#takahasi()
 get_interpolated()
 
 
