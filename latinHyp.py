@@ -20,9 +20,9 @@ np.random.seed(7)
 ####### Parameters -- replace this and the limits ########
 # para = np.linspace(lower_lim, upper_lim, total_eval)
 
-para1 = np.linspace(0.10, 0.140, num_evals)  #OmegaM
-para2 = np.linspace(0.0205, 0.0235, num_evals) #Omegab
-para3 = np.linspace(0.7, 0.9, num_evals) # sigma8
+para1 = np.linspace(0.12, 0.155, num_evals)  #OmegaM
+para2 = np.linspace(0.0215, 0.0235, num_evals) #Omegab
+para3 = np.linspace(0.7, 0.89, num_evals) # sigma8
 para4 = np.linspace(0.55, 0.85, num_evals) # h
 para5 = np.linspace(0.85, 1.05, num_evals) # n_s
 
