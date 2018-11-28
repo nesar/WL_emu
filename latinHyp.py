@@ -70,6 +70,6 @@ AllCombinations = np.zeros((num_evals, AllPara.shape[0]))
 for i in range(AllPara.shape[0]):
     AllCombinations[:, i] = AllPara[i][idx[:, i]]
 
-np.savetxt('lhc_'+str(num_evals)+'.txt', AllCombinations)   #### no
+np.savetxt('lhc_'+str(num_evals)+'.txt', AllCombinations)   
 
 print(AllCombinations)
