@@ -56,7 +56,7 @@ for j in range(len(params)):
     vals = camb.correlations.cl2corr(pp3_2, cxvals)
     #np.savetxt(xvals,fmt='%.5e')
     np.savetxt(output_dir_cl+'flatP_'+str(j)+'.txt',vals,fmt='%.5e')
-np.savetxt(output_dir_cl+'xvals.txt',xvals,fmt = '%d')
+np.savetxt(output_dir_cl+'xvals.txt',xvals,fmt = '%.5e')
 np.savetxt(output_dir_cl+"ls.txt",l,fmt='%d')
 
 print("finished creating power spectra")
