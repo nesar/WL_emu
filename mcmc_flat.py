@@ -27,6 +27,9 @@ GPmodel = '"R_GP_model_flat' + str(nRankMax) + '.RData"'  ## Double and single q
 
 ################################# I/O #################################
 
+l = np.loadtxt(dirIn + 'xvals.txt')
+
+
 RcppCNPy = importr('RcppCNPy')
 # RcppCNPy.chooseCRANmirror(ind=1) # select the first mirror in the list
 
@@ -155,13 +158,13 @@ ax1.axhline(y=1, ls='dotted')
 
 ax1.set_xlabel(r'$x$')
 
-# ax0.set_xscale('log')
-# ax1.set_xscale('log')
+ax0.set_xscale('log')
+ax1.set_xscale('log')
 
 ax1.set_ylabel(r'emu/real - 1')
-ax1.set_ylim(-2e-5, 2e-5)
+ax1.set_ylim(-1e-6, 1e-6)
 
-ax0.plot(Px_flatflat.T, alpha=0.03, color='k')
+ax0.plot(l, Px_flatflat.T, alpha=0.03, color='k')
 
 for x_id in [3, 23, 43, 64, 83, 109]:
     time0 = time.time()
@@ -170,13 +173,12 @@ for x_id in [3, 23, 43, 64, 83, 109]:
     print('Time per emulation %0.2f' % (time1 - time0), ' s')
     x_test = Px_flatflat[x_id]
 
-    ax0.plot(x_decodedGPy, alpha=1.0, ls='--', label='emu')
-    ax0.plot(x_test, alpha=0.9, label='real')
+    ax0.plot(l, x_decodedGPy, alpha=1.0, ls='--', label='emu')
+    ax0.plot(l, x_test, alpha=0.9, label='real')
     plt.legend()
 
     ax1.plot(x_decodedGPy[1:] / x_test[1:] - 1)
 
-plt.show()
 
 
 
@@ -189,41 +191,29 @@ plt.show()
 #### parameters that define the MCMC
 
 ndim = 7
-nwalkers = 200  # 200 #600  # 500
-nrun_burn = 50  # 50 # 50  # 300
-nrun = 500  # 300  # 700
+nwalkers = 100  # 200 #600  # 500
+nrun_burn = 30  # 50 # 50  # 300
+nrun = 300  # 300  # 700
 fileID = 1
 
 ########## REAL DATA with ERRORS #############################
-# Planck/SPT/WMAP data
-# TE, EE, BB next
-
-# dirIn = '../Cl_data/RealData/'
-# allfiles = ['WMAP.txt', 'SPTpol.txt', 'PLANCKlegacy.txt']
-#
-# lID = np.array([0, 2, 0])
-# ClID = np.array([1, 3, 1])
-# emaxID = np.array([2, 4, 2])
-# eminID = np.array([2, 4, 2])
-#
-# print(allfiles)
-#
-# # for fileID in [realDataID]:
-# with open(dirIn + allfiles[fileID]) as f:
-#     lines = (line for line in f if not line.startswith('#'))
-#     allCl = np.loadtxt(lines, skiprows=1)
-#
-#     l = allCl[:, lID[fileID]].astype(int)
-#     Cl = allCl[:, ClID[fileID]]
-#     emax = allCl[:, emaxID[fileID]]
-#     emin = allCl[:, eminID[fileID]]
-#
-#     print(l.shape)
-
 
 Cl = np.loadtxt(filelist[0])[:,1]
-l = np.loadtxt(dirIn + 'xvals.txt')
+Cl = np.log(Cl + 0.1*Cl*np.random.standard_normal(Cl.shape[0]))
 emax = 0.01*Cl
+
+
+
+
+ax0.errorbar(l[::5], Cl[::5], yerr= emax[::5], marker='o',
+       color='k',
+       ecolor='k',
+       markerfacecolor='g',
+       markersize = 2,
+       capsize=0,
+       linestyle='None')
+plt.show()
+
 
 #### Cosmological Parameters ########################################
 
@@ -376,7 +366,7 @@ print('mcmc results:', p1_mcmc[0], p2_mcmc[0], p3_mcmc[0], p4_mcmc[0], p5_mcmc[0
 
 ####### CORNER PLOT ESTIMATES #######################################
 
-CornerPlot = False
+CornerPlot = True
 if CornerPlot:
 
     fig = pygtc.plotGTC(samples_plot,
