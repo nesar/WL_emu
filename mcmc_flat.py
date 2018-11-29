@@ -422,3 +422,13 @@ if ConvergePlot:
 
     fig.savefig(PlotsDir + 'convergencePCA_' + str(ndim) + '_nwalk' + str(nwalkers) + '_run' + str(
         nrun) + ClID + '_' + fileOut + allfiles[fileID][:-4] + '.pdf')
+
+
+
+### FUTURE
+
+
+# Use Mira-Titan's values for P(x)
+# Get CosmoDC2's P(x) values
+# Currently emulating over just 7 parameters, not 8
+#
