@@ -47,7 +47,7 @@ Px_flatflat = Px_flatflat[: ,:, 1]
 
 nan_idx = [~np.isnan(Px_flatflat).any(axis=1)]
 Px_flatflat = Px_flatflat[nan_idx]
-Px_flatflat = np.log(Px_flatflat[:, ::2])
+Px_flatflat = np.log(Px_flatflat)
 
 
 nr, nc = Px_flatflat.shape
@@ -155,8 +155,8 @@ ax1.axhline(y=1, ls='dotted')
 
 ax1.set_xlabel(r'$x$')
 
-ax0.set_xscale('log')
-ax1.set_xscale('log')
+# ax0.set_xscale('log')
+# ax1.set_xscale('log')
 
 ax1.set_ylabel(r'emu/real - 1')
 ax1.set_ylim(-2e-5, 2e-5)
@@ -188,39 +188,42 @@ plt.show()
 
 #### parameters that define the MCMC
 
-ndim = 5
-nwalkers = 20  # 200 #600  # 500
-nrun_burn = 10  # 50 # 50  # 300
-nrun = 30  # 300  # 700
+ndim = 7
+nwalkers = 200  # 200 #600  # 500
+nrun_burn = 50  # 50 # 50  # 300
+nrun = 500  # 300  # 700
 fileID = 1
 
 ########## REAL DATA with ERRORS #############################
 # Planck/SPT/WMAP data
 # TE, EE, BB next
 
-dirIn = '../Cl_data/RealData/'
-allfiles = ['WMAP.txt', 'SPTpol.txt', 'PLANCKlegacy.txt']
+# dirIn = '../Cl_data/RealData/'
+# allfiles = ['WMAP.txt', 'SPTpol.txt', 'PLANCKlegacy.txt']
+#
+# lID = np.array([0, 2, 0])
+# ClID = np.array([1, 3, 1])
+# emaxID = np.array([2, 4, 2])
+# eminID = np.array([2, 4, 2])
+#
+# print(allfiles)
+#
+# # for fileID in [realDataID]:
+# with open(dirIn + allfiles[fileID]) as f:
+#     lines = (line for line in f if not line.startswith('#'))
+#     allCl = np.loadtxt(lines, skiprows=1)
+#
+#     l = allCl[:, lID[fileID]].astype(int)
+#     Cl = allCl[:, ClID[fileID]]
+#     emax = allCl[:, emaxID[fileID]]
+#     emin = allCl[:, eminID[fileID]]
+#
+#     print(l.shape)
 
-lID = np.array([0, 2, 0])
-ClID = np.array([1, 3, 1])
-emaxID = np.array([2, 4, 2])
-eminID = np.array([2, 4, 2])
 
-print(allfiles)
-
-# for fileID in [realDataID]:
-with open(dirIn + allfiles[fileID]) as f:
-    lines = (line for line in f if not line.startswith('#'))
-    allCl = np.loadtxt(lines, skiprows=1)
-
-    l = allCl[:, lID[fileID]].astype(int)
-    Cl = allCl[:, ClID[fileID]]
-    emax = allCl[:, emaxID[fileID]]
-    emin = allCl[:, eminID[fileID]]
-
-    print(l.shape)
-
-
+Cl = np.loadtxt(filelist[0])[:,1]
+l = np.loadtxt(dirIn + 'xvals.txt')
+emax = 0.01*Cl
 
 #### Cosmological Parameters ########################################
 
@@ -287,9 +290,13 @@ if PriorPlot:
 ######### MCMC #######################
 
 
-x = l[l < ls.max()]
-y = Cl[l < ls.max()]
-yerr = emax[l < ls.max()]
+# x = l[l < ls.max()]
+# y = Cl[l < ls.max()]
+# yerr = emax[l < ls.max()]
+
+x = l
+y = Cl
+yerr = emax
 
 
 ## Sample implementation :
@@ -309,17 +316,13 @@ def lnprior(theta):
 def lnlike(theta, x, y, yerr):
     p1, p2, p3, p4, p5, p6, p7 = theta
     # new_params = np.array([p1, 0.0225, p2 , 0.74, 0.9])
-
     new_params = np.array([p1, p2, p3, p4, p5, p6, p7])
-    # model = GPfit(computedGP, new_params)#  Using George -- with model training
 
-    model = GP_fit(new_params)  # Using GPy -- using trained model
-
-    mask = np.in1d(ls, x)
-    model_mask = model[mask]
-
-    # return -0.5 * (np.sum(((y - model) / yerr) ** 2.))
-    return -0.5 * (np.sum(((y - model_mask) / yerr) ** 2.))
+    model = GP_predict(new_params)
+    # mask = np.in1d(ls, x)
+    # model_mask = model[mask]
+    return -0.5 * (np.sum(((y - model) / yerr) ** 2.))
+    # return -0.5 * (np.sum(((y - model_mask) / yerr) ** 2.))
 
 
 def lnprob(theta, x, y, yerr):
@@ -357,14 +360,13 @@ samples.shape
 samples_plot = sampler.chain[:, :, :].reshape((-1, ndim))
 
 np.savetxt('SamplerPCA_mcmc_ndim' + str(ndim) + '_nwalk' + str(nwalkers) + '_run' + str(
-    nrun) + ClID + '_' + allfiles[fileID][:-4] + '.txt',
-           sampler.chain[:, :, :].reshape((-1, ndim)))
+    nrun) + '.txt', sampler.chain[:, :, :].reshape((-1, ndim)))
 
 ####### FINAL PARAMETER ESTIMATES #######################################
 
 
 samples_plot = np.loadtxt('SamplerPCA_mcmc_ndim' + str(ndim) + '_nwalk' + str(nwalkers) + '_run' + str(
-    nrun) + ClID + '_' + allfiles[fileID][:-4] + '.txt')
+    nrun) + '.txt')
 
 # samples = np.exp(samples)
 p1_mcmc, p2_mcmc, p3_mcmc, p4_mcmc, p5_mcmc, p6_mcmc, p7_mcmc = map(lambda v: (v[1], v[2] - v[1],
@@ -385,7 +387,7 @@ if CornerPlot:
                         figureSize='MNRAS_page')  # , plotDensity = True, filledPlots = False,\smoothingKernel = 0, nContourLevels=3)
 
     fig.savefig('pygtcPCA_' + str(ndim) + '_nwalk' + str(nwalkers) + '_run' + str(
-        nrun) + ClID + '_' +  '.pdf')
+        nrun) +  '.pdf')
 
 ####### FINAL PARAMETER ESTIMATES #######################################
 #
