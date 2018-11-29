@@ -50,20 +50,20 @@ RcppCNPy = importr('RcppCNPy')
 filelist = glob.glob(dirIn + 'flat*')
 filelist = sorted(filelist, key=lambda x: int(os.path.splitext(x)[0][74:]))
 
-Cl_flat = np.array([np.loadtxt(f) for f in filelist])
+Px_flatflat = np.array([np.loadtxt(f) for f in filelist])
 
-### Cl_nan = np.unique(np.array(np.argwhere(np.isnan(Cl_flat)) )[:,0])
+### Px_flatnan = np.unique(np.array(np.argwhere(np.isnan(Px_flatflat)) )[:,0])
 
-Cl_flat = Cl_flat[: ,:, 1]
-
-
-nan_idx = [~np.isnan(Cl_flat).any(axis=1)]
-Cl_flat = Cl_flat[nan_idx]
-Cl_flat = np.log(Cl_flat[:, ::2])
+Px_flatflat = Px_flatflat[: ,:, 1]
 
 
-nr, nc = Cl_flat.shape
-y_train = ro.r.matrix(Cl_flat, nrow=nr, ncol=nc)
+nan_idx = [~np.isnan(Px_flatflat).any(axis=1)]
+Px_flatflat = Px_flatflat[nan_idx]
+Px_flatflat = np.log(Px_flatflat[:, ::2])
+
+
+nr, nc = Px_flatflat.shape
+y_train = ro.r.matrix(Px_flatflat, nrow=nr, ncol=nc)
 
 ro.r.assign("y_train2", y_train)
 r('dim(y_train2)')
@@ -173,14 +173,14 @@ ax1.set_xscale('log')
 ax1.set_ylabel(r'emu/real - 1')
 ax1.set_ylim(-2e-5, 2e-5)
 
-ax0.plot(Cl_flat.T, alpha=0.03, color='k')
+ax0.plot(Px_flatflat.T, alpha=0.03, color='k')
 
 for x_id in [3, 23, 43, 64, 83, 109]:
     time0 = time.time()
     x_decodedGPy = GP_predict(parameter_array[x_id])  ## input parameters
     time1 = time.time()
     print('Time per emulation %0.2f' % (time1 - time0), ' s')
-    x_test = Cl_flat[x_id]
+    x_test = Px_flatflat[x_id]
 
     ax0.plot(x_decodedGPy, alpha=1.0, ls='--', label='emu')
     ax0.plot(x_test, alpha=0.9, label='real')
