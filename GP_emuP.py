@@ -11,6 +11,7 @@ The following R packages are required:
 
 2. rpy2 -- which runs R under the hood (pip install rpy2 should work)
 # http://rpy.sourceforge.net/rpy2/doc-2.1/html/index.html
+# conda install -c r rpy2
 
 
 """
