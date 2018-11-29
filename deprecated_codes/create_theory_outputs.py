@@ -4,7 +4,8 @@ import numpy as np
 import subprocess as sp
 import altered_file
 import matplotlib.pyplot as plt
-
+import camb
+import camb.correlations
 # create latin hypercube parameters 
 # syntax is a bit clugey, but can be fixed later
 import os 
@@ -21,6 +22,10 @@ zmax = 2.0
 nbins = 100
 dzl = (zmax-zmin)/nbins
 zl_array = np.linspace(zmin,zmax-dzl,nbins)+dzl/2.0
+
+min_sep2 = 1.0
+max_sep2 = 100
+nbins2= 100
 
 os.system('rm pk_outputs/*');
 os.system('rm cl_outputs/*');
@@ -44,7 +49,16 @@ for j in range(len(params)):
     os.system('rm pk_outputs/*');
     l = l.astype(int)
     np.savetxt(output_dir_cl+"cls_"+str(j)+".txt",c,fmt='%.5e')
+    pp3_2 = np.zeros((10000,4))
+    pp3_2[:, 1] = c[:] * (l* (l + 1.)) / (2. * np.pi)
+    xvals = np.logspace(np.log10(min_sep2), np.log10(max_sep2), nbins2)
+    cxvals = np.cos(xvals / (60.) / (180. / np.pi))
+    vals = camb.correlations.cl2corr(pp3_2, cxvals)
+    #np.savetxt(xvals,fmt='%.5e')
+    np.savetxt(output_dir_cl+'flatP_'+str(j)+'.txt',vals,fmt='%.5e')
+np.savetxt(output_dir_cl+'xvals.txt',xvals,fmt = '%d')
 np.savetxt(output_dir_cl+"ls.txt",l,fmt='%d')
+
 print("finished creating power spectra")
 
 

@@ -117,7 +117,7 @@ def numb_extrap1d(x, xs, ys):
 # to obtain the efficient Cl(l).
 #
 def sum_pk_2d(k_array,pk_array,zl_array,dzl,cfactor,zm,fwhm,ncosmo):
-    l = np.arange(1,10000) 
+    l = np.arange(10000) 
     res = l*0.0
     for i in xrange(len(zl_array)): 
         lktmp,pkltmp = pk_2d(k_array[i],pk_array[i],zl_array[i]-dzl/2,zl_array[i]+dzl/2,zl_array[i],cfactor,zm,fwhm,ncosmo) 
