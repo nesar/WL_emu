@@ -18,6 +18,39 @@ rpy2.robjects.numpy2ri.activate()
 from rpy2.robjects import r
 from rpy2.robjects.packages import importr
 
+
+######### mcmc functions ###################
+
+
+def lnprior(theta):
+    p1, p2, p3, p4, p5, p6, p7 = theta
+    # if 0.12 < p1 < 0.155 and 0.7 < p2 < 0.9:
+    if para1[2] < p1 < para1[3] and para2[2] < p2 < para2[3] and para3[2] < p3 < para3[3] \
+            and para4[2] < p4 < para4[3] and para5[2] < p5 < para5[3] and para6[2] < p6 < para6[
+        3]and para7[2] < p7 < para7[3]:
+        return 0.0
+    return -np.inf
+
+
+def lnlike(theta, x, y, yerr):
+    p1, p2, p3, p4, p5, p6, p7 = theta
+    # new_params = np.array([p1, 0.0225, p2 , 0.74, 0.9])
+    new_params = np.array([p1, p2, p3, p4, p5, p6, p7])
+
+    model = GP_predict(new_params)
+    # mask = np.in1d(ls, x)
+    # model_mask = model[mask]
+    return -0.5 * (np.sum(((y - model) / yerr) ** 2.))
+    # return -0.5 * (np.sum(((y - model_mask) / yerr) ** 2.))
+
+
+def lnprob(theta, x, y, yerr):
+    lp = lnprior(theta)
+    if not np.isfinite(lp):
+        return -np.inf
+    return lp + lnlike(theta, x, y, yerr)
+
+
 ############################# PARAMETERS ##############################
 
 dirIn = "/home/nes/Desktop/AstroVAE/WL_emu/Codes/deprecated_codes/cl_outputs/"  ## Input Cl files
@@ -191,17 +224,28 @@ for x_id in [3, 23, 43, 64, 83, 109]:
 #### parameters that define the MCMC
 
 ndim = 7
-nwalkers = 100  # 200 #600  # 500
+nwalkers = 300  # 200 #600  # 500
 nrun_burn = 30  # 50 # 50  # 300
-nrun = 300  # 300  # 700
+nrun = 500  # 300  # 700
 fileID = 1
 
 ########## REAL DATA with ERRORS #############################
+np.random.seed(42)
 
 Cl = np.loadtxt(filelist[0])[:,1]
 Cl = np.log(Cl + 0.1*Cl*np.random.standard_normal(Cl.shape[0]))
-emax = 0.01*Cl
+emax = 0.05*Cl
 
+
+
+
+# x = l[l < ls.max()]
+# y = Cl[l < ls.max()]
+# yerr = emax[l < ls.max()]
+
+x = l
+y = Cl
+yerr = emax
 
 
 
@@ -246,7 +290,7 @@ if True_init:
              para6[1]*0.9, para6[1]*1.1] +
             1e-3 * np.random.randn(ndim) for i in range(nwalkers)]
 
-MaxLikelihood_init = False
+MaxLikelihood_init = True
 if MaxLikelihood_init:
     # Choice 2b: Find expected values from max likelihood and use that for chain initialization
     # Requires likehood function below to run first
@@ -257,10 +301,10 @@ if MaxLikelihood_init:
     result = op.minimize(nll, [para1[1], para2[1], para3[1], para4[1], para5[1], para6[1],
                                para7[1]],
                          args=(x, y, yerr))
-    p1_ml, p2_ml, p3_ml, p4_ml, p5_ml = result["x"]
+    p1_ml, p2_ml, p3_ml, p4_ml, p5_ml, p6_ml, p7_ml = result["x"]
     print result['x']
 
-    pos0 = [result['x'] + 1.e-4 * np.random.randn(ndim) for i in range(nwalkers)]
+    pos0 = [result['x'] + 1e-5 * np.random.randn(ndim) for i in range(nwalkers)]
 
 # Visualize the initialization
 
@@ -280,46 +324,9 @@ if PriorPlot:
 ######### MCMC #######################
 
 
-# x = l[l < ls.max()]
-# y = Cl[l < ls.max()]
-# yerr = emax[l < ls.max()]
-
-x = l
-y = Cl
-yerr = emax
-
-
 ## Sample implementation :
 # http://eso-python.github.io/ESOPythonTutorials/ESOPythonDemoDay8_MCMC_with_emcee.html
 # https://users.obs.carnegiescience.edu/cburns/ipynbs/Emcee.html
-
-def lnprior(theta):
-    p1, p2, p3, p4, p5, p6, p7 = theta
-    # if 0.12 < p1 < 0.155 and 0.7 < p2 < 0.9:
-    if para1[2] < p1 < para1[3] and para2[2] < p2 < para2[3] and para3[2] < p3 < para3[3] \
-            and para4[2] < p4 < para4[3] and para5[2] < p5 < para5[3] and para6[2] < p6 < para6[
-        3]and para7[2] < p7 < para7[3]:
-        return 0.0
-    return -np.inf
-
-
-def lnlike(theta, x, y, yerr):
-    p1, p2, p3, p4, p5, p6, p7 = theta
-    # new_params = np.array([p1, 0.0225, p2 , 0.74, 0.9])
-    new_params = np.array([p1, p2, p3, p4, p5, p6, p7])
-
-    model = GP_predict(new_params)
-    # mask = np.in1d(ls, x)
-    # model_mask = model[mask]
-    return -0.5 * (np.sum(((y - model) / yerr) ** 2.))
-    # return -0.5 * (np.sum(((y - model_mask) / yerr) ** 2.))
-
-
-def lnprob(theta, x, y, yerr):
-    lp = lnprior(theta)
-    if not np.isfinite(lp):
-        return -np.inf
-    return lp + lnlike(theta, x, y, yerr)
 
 
 # Let us setup the emcee Ensemble Sampler
@@ -402,26 +409,34 @@ if ConvergePlot:
     ax3 = fig.add_subplot(5, 1, 3)
     ax4 = fig.add_subplot(5, 1, 4)
     ax5 = fig.add_subplot(5, 1, 5)
+    ax6 = fig.add_subplot(5, 1, 6)
+    ax7 = fig.add_subplot(5, 1, 7)
 
     ax1.plot(np.arange(nrun), sampler.chain[:, :, 0].T, lw=0.2, alpha=0.9)
-    ax1.text(0.9, 0.9, param1[0], horizontalalignment='center', verticalalignment='center',
+    ax1.text(0.9, 0.9, para1[0], horizontalalignment='center', verticalalignment='center',
              transform=ax1.transAxes, fontsize=20)
     ax2.plot(np.arange(nrun), sampler.chain[:, :, 1].T, lw=0.2, alpha=0.9)
-    ax2.text(0.9, 0.9, param2[0], horizontalalignment='center', verticalalignment='center',
+    ax2.text(0.9, 0.9, para2[0], horizontalalignment='center', verticalalignment='center',
              transform=ax2.transAxes, fontsize=20)
     ax3.plot(np.arange(nrun), sampler.chain[:, :, 2].T, lw=0.2, alpha=0.9)
-    ax3.text(0.9, 0.9, param3[0], horizontalalignment='center', verticalalignment='center',
+    ax3.text(0.9, 0.9, para3[0], horizontalalignment='center', verticalalignment='center',
              transform=ax3.transAxes, fontsize=20)
     ax4.plot(np.arange(nrun), sampler.chain[:, :, 3].T, lw=0.2, alpha=0.9)
-    ax4.text(0.9, 0.9, param4[0], horizontalalignment='center', verticalalignment='center',
+    ax4.text(0.9, 0.9, para4[0], horizontalalignment='center', verticalalignment='center',
              transform=ax4.transAxes, fontsize=20)
     ax5.plot(np.arange(nrun), sampler.chain[:, :, 4].T, lw=0.2, alpha=0.9)
-    ax5.text(0.9, 0.9, param5[0], horizontalalignment='center', verticalalignment='center',
+    ax5.text(0.9, 0.9, para5[0], horizontalalignment='center', verticalalignment='center',
              transform=ax5.transAxes, fontsize=20)
+    ax6.plot(np.arange(nrun), sampler.chain[:, :, 5].T, lw=0.2, alpha=0.9)
+    ax6.text(0.9, 0.9, para6[0], horizontalalignment='center', verticalalignment='center',
+             transform=ax6.transAxes, fontsize=20)
+    ax7.plot(np.arange(nrun), sampler.chain[:, :, 5].T, lw=0.2, alpha=0.9)
+    ax7.text(0.9, 0.9, para7[0], horizontalalignment='center', verticalalignment='center',
+             transform=ax7.transAxes, fontsize=20)
     plt.show()
 
-    fig.savefig(PlotsDir + 'convergencePCA_' + str(ndim) + '_nwalk' + str(nwalkers) + '_run' + str(
-        nrun) + ClID + '_' + fileOut + allfiles[fileID][:-4] + '.pdf')
+    fig.savefig('convergencePCA_' + str(ndim) + '_nwalk' + str(nwalkers) + '_run' + str(
+        nrun) + '.pdf')
 
 
 
