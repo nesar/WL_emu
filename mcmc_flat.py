@@ -32,16 +32,32 @@ def lnprior(theta):
     return -np.inf
 
 
-def lnlike(theta, x, y, yerr):
+def lnlike_diag(theta, x, y, yerr):
     p1, p2, p3, p4, p5, p6, p7 = theta
     # new_params = np.array([p1, 0.0225, p2 , 0.74, 0.9])
     new_params = np.array([p1, p2, p3, p4, p5, p6, p7])
 
     model = GP_predict(new_params)
-    # mask = np.in1d(ls, x)
-    # model_mask = model[mask]
-    return -0.5 * (np.sum(((y - model) / yerr) ** 2.))
+    mask = np.in1d(l, x)
+    model_mask = model[mask]
+    # return -0.5 * (np.sum(((y - model) / yerr) ** 2.))
+    return -0.5 * (np.sum(((y - model_mask) / yerr) ** 2.))
+
+
+def lnlike(theta, x, y, yerr):
+    p1, p2, p3, p4, p5, p6, p7 = theta
+    new_params = np.array([p1, p2, p3, p4, p5, p6, p7])
+
+    model = GP_predict(new_params)
+    mask = np.in1d(l, x)
+    model_mask = model[mask]
+    # return -0.5 * (np.sum(((y - model) / yerr) ** 2.))
     # return -0.5 * (np.sum(((y - model_mask) / yerr) ** 2.))
+    data_vec = y - model_mask
+    loglike = -0.5*(data_vec.dot(yerr).dot(data_vec.T))
+    return  loglike
+
+
 
 
 def lnprob(theta, x, y, yerr):
@@ -59,9 +75,7 @@ nRankMax = 32  ## Number of basis vectors in truncated PCA
 GPmodel = '"R_GP_model_flat' + str(nRankMax) + '.RData"'  ## Double and single quotes are necessary
 
 ################################# I/O #################################
-
 l = np.loadtxt(dirIn + 'xvals.txt')
-
 
 RcppCNPy = importr('RcppCNPy')
 # RcppCNPy.chooseCRANmirror(ind=1) # select the first mirror in the list
@@ -83,7 +97,7 @@ Px_flatflat = Px_flatflat[: ,:, 1]
 
 nan_idx = [~np.isnan(Px_flatflat).any(axis=1)]
 Px_flatflat = Px_flatflat[nan_idx]
-Px_flatflat = np.log(Px_flatflat)
+Px_flatflat = np.log10(Px_flatflat)
 
 
 nr, nc = Px_flatflat.shape
@@ -166,6 +180,8 @@ def GP_predict(para_array):
 
     y_recon = np.array(r('reconst_s2'))
 
+    y_recon = 10**(y_recon)  ## GP fitting was done in log space, exponentiating here
+
     return y_recon[0]
 
 
@@ -193,11 +209,13 @@ ax1.set_xlabel(r'$x$')
 
 ax0.set_xscale('log')
 ax1.set_xscale('log')
+ax0.set_yscale('log')
+
 
 ax1.set_ylabel(r'emu/real - 1')
-ax1.set_ylim(-1e-6, 1e-6)
+ax1.set_ylim(-1e-5, 1e-5)
 
-ax0.plot(l, Px_flatflat.T, alpha=0.03, color='k')
+ax0.plot(l, 10**(Px_flatflat.T), alpha=0.03, color='k')
 
 for x_id in [3, 23, 43, 64, 83, 109]:
     time0 = time.time()
@@ -207,10 +225,10 @@ for x_id in [3, 23, 43, 64, 83, 109]:
     x_test = Px_flatflat[x_id]
 
     ax0.plot(l, x_decodedGPy, alpha=1.0, ls='--', label='emu')
-    ax0.plot(l, x_test, alpha=0.9, label='real')
+    ax0.plot(l, 10**(x_test), alpha=0.9, label='real')
     plt.legend()
 
-    ax1.plot(x_decodedGPy[1:] / x_test[1:] - 1)
+    ax1.plot(x_decodedGPy[1:] / 10**x_test[1:] - 1)
 
 
 
@@ -224,32 +242,45 @@ for x_id in [3, 23, 43, 64, 83, 109]:
 #### parameters that define the MCMC
 
 ndim = 7
-nwalkers = 300  # 200 #600  # 500
+nwalkers = 100  # 200 #600  # 500
 nrun_burn = 30  # 50 # 50  # 300
-nrun = 500  # 300  # 700
+nrun = 300  # 300  # 700
 fileID = 1
 
 ########## REAL DATA with ERRORS #############################
-np.random.seed(42)
+# np.random.seed(42)
 
-Cl = np.loadtxt(filelist[0])[:,1]
-Cl = np.log(Cl + 0.1*Cl*np.random.standard_normal(Cl.shape[0]))
-emax = 0.05*Cl
-
-
+# Cl = np.loadtxt(filelist[0])[:,1]
+# Cl = np.log(Cl + 0.1*Cl*np.random.standard_normal(Cl.shape[0]))
+# emax = 0.05*Cl
 
 
-# x = l[l < ls.max()]
-# y = Cl[l < ls.max()]
-# yerr = emax[l < ls.max()]
+dirDataIn = "/home/nes/Desktop/AstroVAE/WL_emu/Codes/deprecated_codes/test_data/"
+Cl = np.loadtxt(dirDataIn + 'xip_vals.txt')
+# Cl = np.log(Cl)
+emax = np.loadtxt(dirDataIn + 'cp_xip50.txt')
+
+lsmax = 30
+ls_cond = np.where(l < lsmax)
+
 
 x = l
 y = Cl
-yerr = emax
+yerr_diag = np.sqrt(np.diag(emax))
 
 
 
-ax0.errorbar(l[::5], Cl[::5], yerr= emax[::5], marker='o',
+x = x[ls_cond]
+y = y[ls_cond]
+yerr_diag = yerr_diag[ls_cond]
+# emax = emax[ls_cond][:,ls_cond][:,0,:]
+yerr =  emax[:len(ls_cond[0]), :len(ls_cond[0])]
+## Only works if slicing is done at a corner. i.e., if ls_cond corresponds to 
+
+
+
+# np.sqrt(yerr[::5])/Cl[::5]
+ax0.errorbar(x[::], y[::], yerr= yerr_diag[::] , marker='o',
        color='k',
        ecolor='k',
        markerfacecolor='g',
@@ -286,11 +317,11 @@ if Uniform_init:
 True_init = False
 if True_init:
     # Choice 2: chain is initialized in a tight ball around the expected values
-    pos0 = [[para1[1] * 1.2, para2[1] * 0.8, para3[1] * 0.9, para4[1] * 1.1, para5[1] * 1.2,
+    pos1 = [[para1[1] * 1.2, para2[1] * 0.8, para3[1] * 0.9, para4[1] * 1.1, para5[1] * 1.2,
              para6[1]*0.9, para6[1]*1.1] +
             1e-3 * np.random.randn(ndim) for i in range(nwalkers)]
 
-MaxLikelihood_init = True
+MaxLikelihood_init = False
 if MaxLikelihood_init:
     # Choice 2b: Find expected values from max likelihood and use that for chain initialization
     # Requires likehood function below to run first
@@ -446,4 +477,4 @@ if ConvergePlot:
 # Use Mira-Titan's values for P(x)
 # Get CosmoDC2's P(x) values
 # Currently emulating over just 7 parameters, not 8
-#
+# rerun for diff covariance matrix with same xvals.txt
