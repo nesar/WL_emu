@@ -44,7 +44,7 @@ def lnlike_diag(theta, x, y, yerr):
     return -0.5 * (np.sum(((y - model_mask) / yerr) ** 2.))
 
 
-def lnlike(theta, x, y, yerr):
+def lnlike(theta, x, y, icov):
     p1, p2, p3, p4, p5, p6, p7 = theta
     new_params = np.array([p1, p2, p3, p4, p5, p6, p7])
 
@@ -53,8 +53,10 @@ def lnlike(theta, x, y, yerr):
     model_mask = model[mask]
     # return -0.5 * (np.sum(((y - model) / yerr) ** 2.))
     # return -0.5 * (np.sum(((y - model_mask) / yerr) ** 2.))
-    data_vec = y - model_mask
-    loglike = -0.5*(data_vec.dot(yerr).dot(data_vec.T))
+
+    data_vec_diff = y - model_mask
+    loglike = -0.5*(data_vec_diff.T.dot(icov).dot(data_vec_diff))
+    # loglike = -0.5*(np.matmul(np.matmul(data_vec_diff.T, yerr), data_vec_diff))
     return  loglike
 
 
@@ -258,7 +260,7 @@ fileID = 1
 dirDataIn = "/home/nes/Desktop/AstroVAE/WL_emu/Codes/deprecated_codes/test_data/"
 Cl = np.loadtxt(dirDataIn + 'xip_vals.txt')
 # Cl = np.log(Cl)
-emax = np.loadtxt(dirDataIn + 'cp_xip50.txt')
+cov_mat = np.loadtxt(dirDataIn + 'cp_xip50.txt')
 
 lsmax = 30
 ls_cond = np.where(l < lsmax)
@@ -266,7 +268,7 @@ ls_cond = np.where(l < lsmax)
 
 x = l
 y = Cl
-yerr_diag = np.sqrt(np.diag(emax))
+yerr_diag = np.sqrt(np.diag(cov_mat))
 
 
 
@@ -274,8 +276,10 @@ x = x[ls_cond]
 y = y[ls_cond]
 yerr_diag = yerr_diag[ls_cond]
 # emax = emax[ls_cond][:,ls_cond][:,0,:]
-yerr =  emax[:len(ls_cond[0]), :len(ls_cond[0])]
-## Only works if slicing is done at a corner. i.e., if ls_cond corresponds to 
+cov_mat =  cov_mat[:len(ls_cond[0]), :len(ls_cond[0])]
+## Only works if slicing is done at a corner.
+# i.e., if ls_cond corresponds to continuous array entries in l
+icov = np.linalg.inv(cov_mat)
 
 
 
@@ -289,6 +293,11 @@ ax0.errorbar(x[::], y[::], yerr= yerr_diag[::] , marker='o',
        linestyle='None')
 plt.show()
 
+
+plt.figure(43)
+plt.imshow(cov_mat)
+plt.colorbar()
+plt.show()
 
 #### Cosmological Parameters ########################################
 
@@ -363,7 +372,8 @@ if PriorPlot:
 # Let us setup the emcee Ensemble Sampler
 # It is very simple: just one, self-explanatory line
 
-sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, args=(x, y, yerr))
+# sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, args=(x, y, yerr_diag))
+sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, args=(x, y, icov))
 
 ###### BURIN-IN #################
 
