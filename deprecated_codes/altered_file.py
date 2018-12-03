@@ -22,7 +22,7 @@ from scipy.integrate import fixed_quad
 #
 vc = 2.998e5 #(km/s), speed of light
 
-pk_dir = "./pk_outputs/"
+pk_dir = "./pk_outputs_g/"
 #pk_dir = "./des_output_pk/" # the directory to save *_pk.dat
 #----------------------------------------------------------------------
 # calculate P(k,z) in $nbins$ redshift bins between zmin and zmax, and
@@ -52,19 +52,35 @@ def extrap1d(interpolator, xs, ys):
 #----------------------------------------------------------------------
 # weighting functions
 
-def pdz(z,zm,fwhm):
+def pdz_given(z,zm,fwhm):
     return 1./(np.sqrt(2*np.pi) * (fwhm/2.0)) * np.exp(-2.0*(z-zm)**2/fwhm**2)
 
+def pdz_arbitrary():
+    ''' Code to allow arbitrary redshift distribution '''
+    nz = np.loadtxt('nz.txt')[:,1]
+    z = np.loadtxt('nz.txt')[:,0]
+    pdz = interp1d(z,nz,bounds_error=False,fill_value=0.0)
+    return pdz
 
 def wfunc_int(zs,chil,pdz,zl,fwhm,ncosmo):
     chis = ncosmo.comoving_distance(zs).value
     return pdz(zs,zl,fwhm)*(chis - chil)/chis
+
+
+def wfunc_int_arb(zs,chil,pdz,ncosmo):
+    chis = ncosmo.comoving_distance(zs).value
+    return pdz(zs)*(chis - chil)/chis
+
 
 def wfunc_fixedquad(zl,nval,pdz,zm,fwhm,ncosmo):
     Dc_l = ncosmo.comoving_distance(zl).value
     w,werr = fixed_quad(wfunc_int,zl,2.0,args=(Dc_l,pdz,zm,fwhm,ncosmo),n=nval)
     return w,werr
 
+def wfunc_fixedquad_arbitrary(zl,nval,pdz,ncosmo):
+    Dc_l = ncosmo.comoving_distance(zl).value
+    w,werr = fixed_quad(wfunc_int_arb,zl,2.0,args=(Dc_l,pdz,ncosmo),n=nval)
+    return w,werr
 
 
 #----------------------------------------------------------------------
@@ -74,7 +90,7 @@ def wfunc_fixedquad(zl,nval,pdz,zm,fwhm,ncosmo):
 # http://iopscience.iop.org/article/10.1088/0034-4885/78/8/086901/pdf
 #
 
-def pk_2d(k,pk,z_lower,z_upper,z1,cfactor,zm,fwhm,ncosmo):
+def pk_2d(k,pk,z_lower,z_upper,z1,cfactor,zm,fwhm,input_nz,ncosmo):
 
     afactor = 1.0/(1.0+z1)
 
@@ -86,7 +102,12 @@ def pk_2d(k,pk,z_lower,z_upper,z1,cfactor,zm,fwhm,ncosmo):
     DDc = Dc_u - Dc_d 
  
     #pdz = cal_pdz_new()
-    wfunc = wfunc_fixedquad(z1,100,pdz,zm,fwhm,ncosmo)[0]
+    if input_nz:
+        pdz = pdz_arbitrary();
+        wfunc = wfunc_fixedquad_arbitrary(z1,100,pdz,ncosmo)[0]
+    else:
+        wfunc = wfunc_fixedquad(z1,100,pdz_given,zm,fwhm,ncosmo)[0]    
+    #wfunc = wfunc_fixedquad(z1,100,pdz,zm,fwhm,ncosmo)[0]
     #wfunc = wfunc_all(z1) 
     pkl = DDc*(cfactor*wfunc/afactor)**2.0*pk
     
@@ -116,11 +137,11 @@ def numb_extrap1d(x, xs, ys):
 # Integrate the projected 2d Cl(l, zl) along line of sight
 # to obtain the efficient Cl(l).
 #
-def sum_pk_2d(k_array,pk_array,zl_array,dzl,cfactor,zm,fwhm,ncosmo):
+def sum_pk_2d(k_array,pk_array,zl_array,dzl,cfactor,zm,fwhm,input_nz,ncosmo):
     l = np.arange(10000) 
     res = l*0.0
     for i in xrange(len(zl_array)): 
-        lktmp,pkltmp = pk_2d(k_array[i],pk_array[i],zl_array[i]-dzl/2,zl_array[i]+dzl/2,zl_array[i],cfactor,zm,fwhm,ncosmo) 
+        lktmp,pkltmp = pk_2d(k_array[i],pk_array[i],zl_array[i]-dzl/2,zl_array[i]+dzl/2,zl_array[i],cfactor,zm,fwhm,input_nz,ncosmo) 
         ftmp = numb_extrap1d(np.log10(l), np.log10(lktmp),np.log10(pkltmp))
         res = res + 10**ftmp #Cl(l,zl) integn step to Cl(l) EQN. 29
     return l,res
@@ -130,7 +151,7 @@ def sum_pk_2d(k_array,pk_array,zl_array,dzl,cfactor,zm,fwhm,ncosmo):
 # Read in the 3d matter power spectrum from pl_dir and calculate
 # the final Cl(l)
 #
-def multiple_zs(Om0,H0,zm,fwhm):
+def multiple_zs(Om0,H0,zm=1.0,fwhm=0.5,input_nz=False):
     cmd = "ls " + pk_dir
     files = sp.check_output(cmd,shell=True)
     file_list = files.split("\n")[:-1] 
@@ -154,11 +175,13 @@ def multiple_zs(Om0,H0,zm,fwhm):
         
         zl_tmp = np.double(file_list[i].split('_')[1]) 
         dzl = np.double(file_list[i].split('_')[2]) 
-        
+        #print(file_list[i])
+        #print(dzl)       
         zl_array.append(zl_tmp)
         lk_array.append(k_tmp)
         pk_array.append(pk_tmp)
-    l, pkf = sum_pk_2d(lk_array,pk_array,zl_array,dzl,cfactor,zm,fwhm,ncosmo)
+    #print(dzl)
+    l, pkf = sum_pk_2d(lk_array,pk_array,zl_array,dzl,cfactor,zm,fwhm,input_nz,ncosmo)
     return l, pkf
 #-----------------------------------------------------------------------
 
