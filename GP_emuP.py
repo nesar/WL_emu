@@ -14,6 +14,8 @@ The following R packages are required:
 # conda install -c r rpy2
 
 
+rgl issue in Tricia's Mac
+
 """
 
 
@@ -30,7 +32,6 @@ import rpy2.robjects.numpy2ri
 rpy2.robjects.numpy2ri.activate()
 from rpy2.robjects import r
 from rpy2.robjects.packages import importr
-
 
 ############################# PARAMETERS ##############################
 
