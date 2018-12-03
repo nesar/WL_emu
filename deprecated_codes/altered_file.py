@@ -22,7 +22,7 @@ from scipy.integrate import fixed_quad
 #
 vc = 2.998e5 #(km/s), speed of light
 
-pk_dir = "./pk_outputs/"
+pk_dir = "./pk_outputs_g/"
 #pk_dir = "./des_output_pk/" # the directory to save *_pk.dat
 #----------------------------------------------------------------------
 # calculate P(k,z) in $nbins$ redshift bins between zmin and zmax, and
@@ -66,11 +66,21 @@ def wfunc_int(zs,chil,pdz,zl,fwhm,ncosmo):
     chis = ncosmo.comoving_distance(zs).value
     return pdz(zs,zl,fwhm)*(chis - chil)/chis
 
+
+def wfunc_int_arb(zs,chil,pdz,ncosmo):
+    chis = ncosmo.comoving_distance(zs).value
+    return pdz(zs)*(chis - chil)/chis
+
+
 def wfunc_fixedquad(zl,nval,pdz,zm,fwhm,ncosmo):
     Dc_l = ncosmo.comoving_distance(zl).value
     w,werr = fixed_quad(wfunc_int,zl,2.0,args=(Dc_l,pdz,zm,fwhm,ncosmo),n=nval)
     return w,werr
 
+def wfunc_fixedquad_arbitrary(zl,nval,pdz,ncosmo):
+    Dc_l = ncosmo.comoving_distance(zl).value
+    w,werr = fixed_quad(wfunc_int_arb,zl,2.0,args=(Dc_l,pdz,ncosmo),n=nval)
+    return w,werr
 
 
 #----------------------------------------------------------------------
@@ -94,7 +104,7 @@ def pk_2d(k,pk,z_lower,z_upper,z1,cfactor,zm,fwhm,input_nz,ncosmo):
     #pdz = cal_pdz_new()
     if input_nz:
         pdz = pdz_arbitrary();
-        wfunc = wfunc_fixedquad_arbitrary(z1,100,pdz,ncomso)[0]
+        wfunc = wfunc_fixedquad_arbitrary(z1,100,pdz,ncosmo)[0]
     else:
         wfunc = wfunc_fixedquad(z1,100,pdz_given,zm,fwhm,ncosmo)[0]    
     #wfunc = wfunc_fixedquad(z1,100,pdz,zm,fwhm,ncosmo)[0]
@@ -165,10 +175,12 @@ def multiple_zs(Om0,H0,zm=1.0,fwhm=0.5,input_nz=False):
         
         zl_tmp = np.double(file_list[i].split('_')[1]) 
         dzl = np.double(file_list[i].split('_')[2]) 
-        
+        #print(file_list[i])
+        #print(dzl)       
         zl_array.append(zl_tmp)
         lk_array.append(k_tmp)
         pk_array.append(pk_tmp)
+    #print(dzl)
     l, pkf = sum_pk_2d(lk_array,pk_array,zl_array,dzl,cfactor,zm,fwhm,input_nz,ncosmo)
     return l, pkf
 #-----------------------------------------------------------------------

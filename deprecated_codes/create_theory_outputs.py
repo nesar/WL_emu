@@ -27,10 +27,10 @@ min_sep2 = 1.0
 max_sep2 = 100
 nbins2= 100
 
-os.system('rm pk_outputs/*');
-os.system('rm cl_outputs/*');
-output_dir = 'pk_outputs/'
-output_dir_cl = 'cl_outputs/'
+os.system('rm pk_outputs_g/*');
+os.system('rm cl_outputs_g/*');
+output_dir = 'pk_outputs_g/'
+output_dir_cl = 'cl_outputs_g/'
 for j in range(len(params)):
     print(j)
     omegaM = params[j][0]
@@ -45,8 +45,8 @@ for j in range(len(params)):
         filename = output_dir+str(i)+"_"+str(zl_array[i])+"_"+str(dzl)+"_cosmo_"+str(j)+"_pk.dat"
         cmd = "./wle_numba/emu.exe "+filename+" "+str(omegaB)+" "+str(omegaM)+" "+str(n_s)+" "+str(h*100)+" -1.0 "+str(sigma8)+" "+str(zl_array[i])
         sp.call(cmd,shell=True)
-    l,c = altered_file.multiple_zs(omegaM,h*100,z_m,fwhm)
-    os.system('rm pk_outputs/*');
+    l,c = altered_file.multiple_zs(omegaM,h*100,input_nz=True)
+    os.system('rm pk_outputs_g/*');
     l = l.astype(int)
     np.savetxt(output_dir_cl+"cls_"+str(j)+".txt",c,fmt='%.5e')
     pp3_2 = np.zeros((10000,4))
