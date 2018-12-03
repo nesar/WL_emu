@@ -55,5 +55,5 @@ print("finished computing theory power spectra")
 
 import gp_emulation
 
-gp_emulation.create_emu(output_dir_cl,'lhc_32_5.txt')
+gp_emulation.create_emu(output_dir_cl+'/','lhc_32_5.txt')
 
