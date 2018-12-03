@@ -56,7 +56,7 @@ def lnlike(theta, x, y, icov):
 
     data_vec_diff = y - model_mask
     loglike = -0.5*(data_vec_diff.T.dot(icov).dot(data_vec_diff))
-    # loglike = -0.5*(np.matmul(np.matmul(data_vec_diff.T, yerr), data_vec_diff))
+    ### loglike = -0.5*(np.matmul(np.matmul(data_vec_diff.T, yerr), data_vec_diff))
     return  loglike
 
 
@@ -66,6 +66,7 @@ def lnprob(theta, x, y, yerr):
     lp = lnprior(theta)
     if not np.isfinite(lp):
         return -np.inf
+    # return lp + lnlike_diag(theta, x, y, yerr)
     return lp + lnlike(theta, x, y, yerr)
 
 
@@ -73,7 +74,7 @@ def lnprob(theta, x, y, yerr):
 
 dirIn = "/home/nes/Desktop/AstroVAE/WL_emu/Codes/deprecated_codes/cl_outputs/"  ## Input Cl files
 paramIn = "/home/nes/Desktop/AstroVAE/WL_emu/Codes/lhc_128.txt"  ## 8 parameter file
-nRankMax = 32  ## Number of basis vectors in truncated PCA
+nRankMax = 48  ## Number of basis vectors in truncated PCA
 GPmodel = '"R_GP_model_flat' + str(nRankMax) + '.RData"'  ## Double and single quotes are necessary
 
 ################################# I/O #################################
@@ -99,11 +100,11 @@ Px_flatflat = Px_flatflat[: ,:, 1]
 
 nan_idx = [~np.isnan(Px_flatflat).any(axis=1)]
 Px_flatflat = Px_flatflat[nan_idx]
-Px_flatflat = np.log10(Px_flatflat)
+Px_flatlog = np.log10(Px_flatflat)
 
 
-nr, nc = Px_flatflat.shape
-y_train = ro.r.matrix(Px_flatflat, nrow=nr, ncol=nc)
+nr, nc = Px_flatlog.shape
+y_train = ro.r.matrix(Px_flatlog, nrow=nr, ncol=nc)
 
 ro.r.assign("y_train2", y_train)
 r('dim(y_train2)')
@@ -217,7 +218,7 @@ ax0.set_yscale('log')
 ax1.set_ylabel(r'emu/real - 1')
 ax1.set_ylim(-1e-5, 1e-5)
 
-ax0.plot(l, 10**(Px_flatflat.T), alpha=0.03, color='k')
+ax0.plot(l, (Px_flatflat.T), alpha=0.03, color='k')
 
 for x_id in [3, 23, 43, 64, 83, 109]:
     time0 = time.time()
@@ -227,10 +228,10 @@ for x_id in [3, 23, 43, 64, 83, 109]:
     x_test = Px_flatflat[x_id]
 
     ax0.plot(l, x_decodedGPy, alpha=1.0, ls='--', label='emu')
-    ax0.plot(l, 10**(x_test), alpha=0.9, label='real')
+    ax0.plot(l, (x_test), alpha=0.9, label='real')
     plt.legend()
 
-    ax1.plot(x_decodedGPy[1:] / 10**x_test[1:] - 1)
+    ax1.plot(x_decodedGPy[1:] / x_test[1:] - 1)
 
 
 
@@ -244,9 +245,9 @@ for x_id in [3, 23, 43, 64, 83, 109]:
 #### parameters that define the MCMC
 
 ndim = 7
-nwalkers = 500  # 200 #600  # 500
+nwalkers = 100  # 200 #600  # 500
 nrun_burn = 50  # 50 # 50  # 300
-nrun = 700  # 300  # 700
+nrun = 200  # 300  # 700
 fileID = 1
 
 ########## REAL DATA with ERRORS #############################
@@ -256,6 +257,7 @@ fileID = 1
 # Cl = np.log(Cl + 0.1*Cl*np.random.standard_normal(Cl.shape[0]))
 # emax = 0.05*Cl
 
+########## REAL DATA with ERRORS #############################
 
 dirDataIn = "/home/nes/Desktop/AstroVAE/WL_emu/Codes/deprecated_codes/test_data/"
 Cl = np.loadtxt(dirDataIn + 'xip_vals.txt')
@@ -298,6 +300,8 @@ plt.figure(43)
 plt.imshow(cov_mat)
 plt.colorbar()
 plt.show()
+
+plt.savefig('Plots/PowerSpect_emu.pdf')
 
 #### Cosmological Parameters ########################################
 
@@ -397,14 +401,14 @@ samples.shape
 ###########################################################################
 samples_plot = sampler.chain[:, :, :].reshape((-1, ndim))
 
-np.savetxt('SamplerPCA_mcmc_ndim' + str(ndim) + '_nwalk' + str(nwalkers) + '_run' + str(
+np.savetxt('Data/Chains/SamplerPCA_mcmc_ndim' + str(ndim) + '_nwalk' + str(nwalkers) + '_run' + str(
     nrun) + '.txt', sampler.chain[:, :, :].reshape((-1, ndim)))
 
 ####### FINAL PARAMETER ESTIMATES #######################################
 
 
-samples_plot = np.loadtxt('SamplerPCA_mcmc_ndim' + str(ndim) + '_nwalk' + str(nwalkers) + '_run' + str(
-    nrun) + '.txt')
+samples_plot = np.loadtxt('Data/Chains/SamplerPCA_mcmc_ndim' + str(ndim) + '_nwalk' + str(
+    nwalkers) + '_run' + str(nrun) + '.txt')
 
 # samples = np.exp(samples)
 p1_mcmc, p2_mcmc, p3_mcmc, p4_mcmc, p5_mcmc, p6_mcmc, p7_mcmc = map(lambda v: (v[1], v[2] - v[1],
@@ -424,7 +428,7 @@ if CornerPlot:
                                 para7[1]],
                         figureSize='MNRAS_page')  # , plotDensity = True, filledPlots = False,\smoothingKernel = 0, nContourLevels=3)
 
-    fig.savefig('pygtcPCA_' + str(ndim) + '_nwalk' + str(nwalkers) + '_run' + str(
+    fig.savefig('Plots/pygtcPCA_' + str(ndim) + '_nwalk' + str(nwalkers) + '_run' + str(
         nrun) +  '.pdf')
 
 ####### FINAL PARAMETER ESTIMATES #######################################
@@ -445,13 +449,13 @@ ConvergePlot = False
 if ConvergePlot:
     fig = plt.figure(13214)
     plt.xlabel('steps')
-    ax1 = fig.add_subplot(5, 1, 1)
-    ax2 = fig.add_subplot(5, 1, 2)
-    ax3 = fig.add_subplot(5, 1, 3)
-    ax4 = fig.add_subplot(5, 1, 4)
-    ax5 = fig.add_subplot(5, 1, 5)
-    ax6 = fig.add_subplot(5, 1, 6)
-    ax7 = fig.add_subplot(5, 1, 7)
+    ax1 = fig.add_subplot(7, 1, 1)
+    ax2 = fig.add_subplot(7, 1, 2)
+    ax3 = fig.add_subplot(7, 1, 3)
+    ax4 = fig.add_subplot(7, 1, 4)
+    ax5 = fig.add_subplot(7, 1, 5)
+    ax6 = fig.add_subplot(7, 1, 6)
+    ax7 = fig.add_subplot(7, 1, 7)
 
     ax1.plot(np.arange(nrun), sampler.chain[:, :, 0].T, lw=0.2, alpha=0.9)
     ax1.text(0.9, 0.9, para1[0], horizontalalignment='center', verticalalignment='center',
@@ -476,7 +480,7 @@ if ConvergePlot:
              transform=ax7.transAxes, fontsize=20)
     plt.show()
 
-    fig.savefig('convergencePCA_' + str(ndim) + '_nwalk' + str(nwalkers) + '_run' + str(
+    fig.savefig('Plots/convergencePCA_' + str(ndim) + '_nwalk' + str(nwalkers) + '_run' + str(
         nrun) + '.pdf')
 
 

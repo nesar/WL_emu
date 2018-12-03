@@ -46,12 +46,19 @@ RcppCNPy = importr('RcppCNPy')
 
 ### 8 parameters: 
 
-filelist = os.listdir(dirIn)
-### dirIn contains ONLY the cls_*.txt files
-filelist = sorted(filelist,key=lambda x: int(os.path.splitext(x)[0][4:]))
+# filelist = os.listdir(dirIn)
+# ### dirIn contains ONLY the cls_*.txt files
+# filelist = sorted(filelist,key=lambda x: int(os.path.splitext(x)[0][4:]))
+#
+#
+# Cls = np.array([np.loadtxt(dirIn + f) for f in filelist])
 
 
-Cls = np.array([np.loadtxt(dirIn + f) for f in filelist])
+filelist = glob.glob(dirIn + 'cls*')
+filelist = sorted(filelist, key=lambda x: int(os.path.splitext(x)[0][72:]))
+
+Cls = np.array([np.loadtxt(f) for f in filelist])
+
 
 
 # Cl_nan = np.unique(np.array(np.argwhere(np.isnan(Cls)) )[:,0])
@@ -59,7 +66,7 @@ nan_idx = [~np.isnan(Cls).any(axis=1)]
 
 Cls = Cls[nan_idx]
 
-Cls = np.log(Cls[:, ::2])
+Cls = np.log(Cls[:, ::10])
 
 
 nr, nc = Cls.shape
