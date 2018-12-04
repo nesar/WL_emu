@@ -39,13 +39,15 @@ params = np.loadtxt('lhc_32_5.txt')
 output_dir_cl = 'cl_outputs_g'
 
 # Run theory code at latin hypercube positions - note this is currently only the full-sky version
+os.system('rm cl_outputs_g/*');
+
 for j in range(len(params)):
     os.system('rm pk_outputs_g/*');
     run_pk_emu.create_pk('pk_outputs_g',params,0,5,0.0,2.0,100)
     l,c = altered_file.multiple_zs(params[j][0],params[j][3]*100,input_nz=True)
     l = l.astype(int)
-    np.savetxt(output_dir_cl+"/cls_"+str(j)+".txt",c,fmt='%.5e')
-    np.savetxt(output_dir_cl+"/ls_"+str(j)+".txt",l,fmt='%d')
+    np.savetxt(output_dir_cl+"/cls_"+str(j)+".txt",c[1:],fmt='%.5e')
+    np.savetxt(output_dir_cl+"/ls_"+str(j)+".txt",l[1:],fmt='%d')
 
 print("finished computing theory power spectra")
 
