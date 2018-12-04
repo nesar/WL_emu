@@ -67,7 +67,7 @@ nan_idx = [~np.isnan(Cls).any(axis=1)]
 
 Cls = Cls[nan_idx]
 
-Cls = np.log(Cls[:, ::10])
+Cls = np.log(Cls[:, 1::10])
 
 
 nr, nc = Cls.shape
