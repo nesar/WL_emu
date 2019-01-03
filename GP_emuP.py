@@ -37,8 +37,8 @@ from rpy2.robjects.packages import importr
 
 dirIn = "/home/nes/Desktop/AstroVAE/WL_emu/Codes/deprecated_codes/cl_outputs/"   ## Input Cl files
 paramIn = "/home/nes/Desktop/AstroVAE/WL_emu/Codes/lhc_128.txt"   ## 8 parameter file
-nRankMax = 32    ## Number of basis vectors in truncated PCA
-GPmodel = '"R_GP_model' + str(nRankMax) + '.RData"'  ## Double and single quotes are necessary
+nRankMax = 16    ## Number of basis vectors in truncated PCA
+GPmodel = '"R_GP_model1' + str(nRankMax) + '.RData"'  ## Double and single quotes are necessary
 
 ################################# I/O #################################
 RcppCNPy = importr('RcppCNPy')
@@ -70,8 +70,8 @@ Cls = Cls[nan_idx]
 Cls = np.log(Cls[:, 1::10])
 
 
-nr, nc = Cls.shape
-y_train = ro.r.matrix(Cls, nrow=nr, ncol=nc)
+nr, nc = Cls[4:, :].shape
+y_train = ro.r.matrix(Cls[4:, :], nrow=nr, ncol=nc)
 
 ro.r.assign("y_train2", y_train)
 r('dim(y_train2)')
@@ -80,8 +80,8 @@ r('dim(y_train2)')
 parameter_array = np.loadtxt(paramIn)
 parameter_array = parameter_array[nan_idx]
 
-nr, nc = parameter_array.shape
-u_train = ro.r.matrix(parameter_array, nrow=nr, ncol=nc)
+nr, nc = parameter_array[4:, :].shape
+u_train = ro.r.matrix(parameter_array[4:, :], nrow=nr, ncol=nc)
 
 ro.r.assign("u_train2", u_train)
 r('dim(u_train2)')
@@ -185,7 +185,9 @@ ax1.set_ylim(-2e-5, 2e-5)
 
 ax0.plot(Cls.T, alpha = 0.03, color = 'k')
 
-for x_id in [3, 23, 43, 64, 83, 109]:
+# for x_id in [3, 23, 43, 64, 83, 109]:
+
+for x_id in range(0, 4):
 
     time0 = time.time()
     x_decodedGPy = GP_predict(parameter_array[x_id])  ## input parameters
