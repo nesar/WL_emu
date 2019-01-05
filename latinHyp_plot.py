@@ -8,12 +8,15 @@ import numpy as np
 from matplotlib import pyplot as plt
 import pyDOE as pyDOE
 import sys
+import SetPub
+SetPub.set_pub()
+
 
 def rescale01(xmin, xmax, f):
     return (f - xmin) / (xmax - xmin)
 
 
-num_evals = 128
+num_evals = 64
 num_params = 7
 verbose = True
 np.random.seed(7)
@@ -42,8 +45,12 @@ elif(num_params>5):
 
 if (num_params==5):
     AllPara = np.vstack([para1, para2, para3, para4, para5])
+    AllLabels = [r'$\tilde{\Omega}_m$', r'$\tilde{\Omega}_b$', r'$\tilde{\sigma}_8$', r'$\tilde{'
+                 r'h}$', r'$\tilde{n}_s$']
 elif (num_params==7):
     AllPara = np.vstack([para1, para2, para3, para4, para5, para6, para7])
+    AllLabels = [r'$\tilde{\Omega}_m$', r'$\tilde{\Omega}_b$', r'$\tilde{\sigma}_8$', r'$\tilde{'
+                 r'h}$', r'$\tilde{n}_s$', r'$\tilde{z}_m$', r'$\tilde{FWHM}$']
 
 #########################################################################
 
@@ -60,23 +67,27 @@ if verbose:
 if verbose:
     f, a = plt.subplots(AllPara.shape[0], AllPara.shape[0], sharex=True, sharey=True)
     plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=None, hspace=None)
-    plt.rcParams.update({'font.size': 8})
+    plt.rcParams.update({'font.size': 7})
 
     for i in range(AllPara.shape[0]):
         for j in range(i+1):
             print(i,j)
             if(i!=j):
-                a[i, j].scatter(lhd[:, i], lhd[:, j], s=5)
+                a[i, j].scatter(lhd[:, i], lhd[:, j], s = 3, alpha = 0.7)
                 a[i, j].grid(True)
+                a[j, i].set_visible(False)
+
             else:
                 # a[i,i].set_title(AllLabels[i])
-                # a[i, i].text(0.4, 0.4, AllLabels[i], size = 'xx-large')
-                hist, bin_edges = np.histogram(lhd[:,i], density=True, bins=64)
+                a[i, i].text(0.4, 0.4, AllLabels[i], size = 'x-large')
+                hist, bin_edges = np.histogram(lhd[:,i], density=True, bins=12)
                 # a[i,i].bar(hist)
-                a[i,i].bar(bin_edges[:-1], hist/hist.max(), width=0.2)
+                a[i,i].bar(bin_edges[:-1], hist/hist.max(), width=0.09, alpha = 0.5)
                 plt.xlim(0,1)
                 plt.ylim(0,1)
-    #plt.savefig('../Cl_data/Plots/LatinSq.png', figsize=(10, 10))
+    # plt.tight_layout()
+    # plt.savefig('Plots/LatinSq.pdf', figsize=(5, 5))
+
     plt.show()
 
 
