@@ -41,7 +41,7 @@ from rpy2.robjects.packages import importr
 dirIn = "/home/nes/Desktop/AstroVAE/WL_emu/Codes/deprecated_codes/cl_outputs/"   ## Input Cl files
 paramIn = "/home/nes/Desktop/AstroVAE/WL_emu/Codes/lhc_128.txt"   ## 8 parameter file
 nRankMax = 32    ## Number of basis vectors in truncated PCA
-GPmodel = '"R_GP_model13' + str(nRankMax) + '.RData"'  ## Double and single quotes are necessary
+GPmodel = '"R_GP_model135' + str(nRankMax) + '.RData"'  ## Double and single quotes are necessary
 
 ################################# I/O #################################
 RcppCNPy = importr('RcppCNPy')
@@ -70,15 +70,14 @@ nan_idx = [~np.isnan(Cls).any(axis=1)]
 
 Cls = Cls[nan_idx]
 
-Cls = np.log(Cls[:, 1::10])
+Cls = np.log(Cls[:, 1::2])
 
 
-nr, nc = Cls[4:, :].shape
-y_train = ro.r.matrix(Cls[4:, :], nrow=nr, ncol=nc)
+# nr, nc = Cls[4:, :].shape
+# y_train = ro.r.matrix(Cls[4:, :], nrow=nr, ncol=nc)
 
-# nr, nc = Cls.shape
-# y_train = ro.r.matrix(Cls, nrow=nr, ncol=nc)
-
+nr, nc = Cls.shape
+y_train = ro.r.matrix(Cls, nrow=nr, ncol=nc)
 
 
 ro.r.assign("y_train2", y_train)
@@ -88,11 +87,11 @@ r('dim(y_train2)')
 parameter_array = np.loadtxt(paramIn)
 parameter_array = parameter_array[nan_idx]
 
-nr, nc = parameter_array[4:, :].shape
-u_train = ro.r.matrix(parameter_array[4:, :], nrow=nr, ncol=nc)
+# nr, nc = parameter_array[4:, :].shape
+# u_train = ro.r.matrix(parameter_array[4:, :], nrow=nr, ncol=nc)
 
-# nr, nc = parameter_array.shape
-# u_train = ro.r.matrix(parameter_array, nrow=nr, ncol=nc)
+nr, nc = parameter_array.shape
+u_train = ro.r.matrix(parameter_array, nrow=nr, ncol=nc)
 
 ro.r.assign("u_train2", u_train)
 r('dim(u_train2)')
@@ -179,24 +178,24 @@ gs.update(hspace=0.02, left=0.2, bottom=0.15)
 ax0 = plt.subplot(gs[0])
 ax1 = plt.subplot(gs[1])
 
-ax0.set_ylabel(r'$C_l$')
+ax0.set_ylabel(r'$C_l$', fontsize = 15)
 
-ax1.axhline(y=1, ls='dotted')
+ax1.axhline(y=0, ls='dashed')
 # ax1.axhline(y=-1e-6, ls='dashed')
 # ax1.axhline(y=1e-6, ls='dashed')
 
-ax1.set_xlabel(r'$l$')
+ax1.set_xlabel(r'$l$', fontsize = 15)
 
 ax0.set_xscale('log')
 ax1.set_xscale('log')
 
 ax1.set_ylabel(r'emu/real - 1')
-ax1.set_ylim(-6e-6, 6e-6)
+ax1.set_ylim(-1e-5, 1e-5)
 
 
 ax0.plot(Cls.T, alpha = 0.03, color = 'k')
 
-for x_id in [3, 23, 43, 64, 83, 109]:
+for x_id in [23, 83, 54, 83, 111]:
 #
 # for x_id in range(0, 4):
 
@@ -212,6 +211,8 @@ for x_id in [3, 23, 43, 64, 83, 109]:
 
     ax1.plot(x_decodedGPy[1:] / x_test[1:] - 1)
 
+
+plt.savefig('Plots/ClEmu.png', figsize= (28,24))
 plt.show()
 
 

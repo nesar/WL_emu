@@ -67,13 +67,13 @@ if verbose:
 if verbose:
     f, a = plt.subplots(AllPara.shape[0], AllPara.shape[0], sharex=True, sharey=True)
     plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=None, hspace=None)
-    plt.rcParams.update({'font.size': 7})
+    plt.rcParams.update({'font.size': 6})
 
     for i in range(AllPara.shape[0]):
         for j in range(i+1):
             print(i,j)
             if(i!=j):
-                a[i, j].scatter(lhd[:, i], lhd[:, j], s = 3, alpha = 0.7)
+                a[i, j].scatter(lhd[:, i], lhd[:, j], s = 1, alpha = 0.7)
                 a[i, j].grid(True)
                 a[j, i].set_visible(False)
 
@@ -86,7 +86,7 @@ if verbose:
                 plt.xlim(0,1)
                 plt.ylim(0,1)
     # plt.tight_layout()
-    # plt.savefig('Plots/LatinSq.pdf', figsize=(5, 5))
+    plt.savefig('Plots/LatinSq.png', figsize=(30, 30))
 
     plt.show()
 

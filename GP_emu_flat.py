@@ -22,6 +22,8 @@ import matplotlib.pylab as plt
 import time
 import glob
 import os
+import SetPub
+SetPub.set_pub()
 
 ###### R kernel imports from rpy2 #####
 import rpy2.robjects as ro
@@ -62,8 +64,8 @@ Px_flatflat = Px_flatflat[nan_idx]
 Px_flatflat = np.log(Px_flatflat[:, ::2])
 
 
-nr, nc = Px_flatflat[8:,:].shape
-y_train = ro.r.matrix(Px_flatflat[8:,:], nrow=nr, ncol=nc)
+nr, nc = Px_flatflat[:,:].shape
+y_train = ro.r.matrix(Px_flatflat[:,:], nrow=nr, ncol=nc)
 
 ro.r.assign("y_train2", y_train)
 r('dim(y_train2)')
@@ -71,8 +73,8 @@ r('dim(y_train2)')
 parameter_array = np.loadtxt(paramIn)
 parameter_array = parameter_array[nan_idx]
 
-nr, nc = parameter_array[8:,:].shape
-u_train = ro.r.matrix(parameter_array[8:,:], nrow=nr, ncol=nc)
+nr, nc = parameter_array[:,:].shape
+u_train = ro.r.matrix(parameter_array[:,:], nrow=nr, ncol=nc)
 
 ro.r.assign("u_train2", u_train)
 r('dim(u_train2)')
@@ -175,8 +177,8 @@ ax1.set_ylim(-2e-2, 2e-2)
 
 ax0.plot(Px_flatflat.T, alpha=0.03, color='k')
 
-# for x_id in [3, 23, 43, 64, 83, 109]:
-for x_id in range(7):
+for x_id in [13, 24, 64, 83, 109]:
+# for x_id in range(7):
 
     time0 = time.time()
     x_decodedGPy = GP_predict(parameter_array[x_id])  ## input parameters
