@@ -166,6 +166,43 @@ def GP_predict(para_array):
 
 ##################################### TESTING ##################################
 
+### PRIOR PLOT ####
+
+plt.rc('text', usetex=True)   # Slower
+plt.rc('font', size=12)  # 18 usually
+
+plt.figure(999, figsize=(8, 6))
+from matplotlib import gridspec
+
+gs = gridspec.GridSpec(1, 1)
+gs.update(hspace=0.02, left=0.2, bottom=0.15)
+ax0 = plt.subplot(gs[0])
+# ax1 = plt.subplot(gs[1])
+
+ax0.set_ylabel(r'$l(l+1)C_l$', fontsize = 15)
+
+# ax1.axhline(y=0, ls='dashed')
+# ax1.axhline(y=-1e-6, ls='dashed')
+# ax1.axhline(y=1e-6, ls='dashed')
+
+ax0.set_xlabel(r'$l$', fontsize = 15)
+
+ax0.set_xscale('log')
+# ax1.set_xscale('log')
+
+# ax1.set_ylabel(r'emu/real - 1')
+# ax1.set_ylim(-1e-5, 1e-5)
+
+
+ax0.plot(Cls.T, alpha = 0.3)
+
+
+
+plt.savefig('Plots/ClEmuPrior.png', figsize= (24,18), bbox_inches="tight", dpi = 900)
+plt.show()
+
+
+#### POSTERIOR DRAWS ######
 
 plt.rc('text', usetex=True)   # Slower
 plt.rc('font', size=12)  # 18 usually
@@ -178,7 +215,7 @@ gs.update(hspace=0.02, left=0.2, bottom=0.15)
 ax0 = plt.subplot(gs[0])
 ax1 = plt.subplot(gs[1])
 
-ax0.set_ylabel(r'$C_l$', fontsize = 15)
+ax0.set_ylabel(r'$l(l+1)C_l$', fontsize = 15)
 
 ax1.axhline(y=0, ls='dashed')
 # ax1.axhline(y=-1e-6, ls='dashed')
@@ -212,8 +249,45 @@ for x_id in [23, 83, 54, 83, 111]:
     ax1.plot(x_decodedGPy[1:] / x_test[1:] - 1)
 
 
-plt.savefig('Plots/ClEmu.png', figsize= (28,24))
+plt.savefig('Plots/ClEmu.png', figsize= (28,24), bbox_inches="tight", dpi = 900)
 plt.show()
+
+
+
+
+#### Plot PCA bases and weights ####
+
+
+
+PCAbases = r('svd_decomp2')
+
+PCAweights = r('svd_weights2')
+
+
+
+plt.figure(900, figsize=(8,6))
+
+plt.title('Truncated PCA weights')
+plt.xlabel('PCA weight [0]',fontsize = 18)
+plt.ylabel('PCA weight [1]',fontsize = 18)
+CS = plt.scatter(PCAweights[:, 0], PCAweights[:, 1], c = parameter_array[:, 2], s = 200, alpha=0.8)
+cbar = plt.colorbar(CS)
+cbar.ax.set_ylabel(r'$\sigma_8$', fontsize = 18)
+plt.tight_layout()
+plt.savefig('Plots/SVD_TruncatedWeights8.png', figsize= (28,24), bbox_inches="tight", dpi = 900)
+
+
+
+plt.figure(901, figsize=(8,6))
+
+plt.title('Truncated PCA weights')
+plt.xlabel('PCA weight [0]',fontsize = 18)
+plt.ylabel('PCA weight [1]',fontsize = 18)
+CS = plt.scatter(PCAweights[:, 0], PCAweights[:, 1], c = parameter_array[:, 5], s = 200, alpha=0.8)
+cbar = plt.colorbar(CS)
+cbar.ax.set_ylabel(r'$z_m$', fontsize = 18)
+plt.tight_layout()
+plt.savefig('Plots/SVD_TruncatedWeightZm.png', figsize= (28,24), bbox_inches="tight", dpi = 900)
 
 
 

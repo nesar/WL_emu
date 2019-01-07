@@ -86,7 +86,7 @@ if verbose:
                 plt.xlim(0,1)
                 plt.ylim(0,1)
     # plt.tight_layout()
-    plt.savefig('Plots/LatinSq.png', figsize=(30, 30))
+    plt.savefig('Plots/LatinSq.png', figsize=(5, 5), bbox_inches="tight", dpi = 900)
 
     plt.show()
 
