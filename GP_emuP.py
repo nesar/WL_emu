@@ -259,7 +259,7 @@ plt.show()
 
 
 
-PCAbases = r('svd_decomp2')
+PCAbases = r('svd_decomp2$v[,1:nrankmax]')
 
 PCAweights = r('svd_weights2')
 
@@ -288,6 +288,31 @@ cbar = plt.colorbar(CS)
 cbar.ax.set_ylabel(r'$z_m$', fontsize = 18)
 plt.tight_layout()
 plt.savefig('Plots/SVD_TruncatedWeightZm.png', figsize= (28,24), bbox_inches="tight", dpi = 900)
+
+
+
+
+
+plt.figure(902, figsize=(7,3))
+
+# plt.xlabel('PCA weight [0]',fontsize = 18)
+# plt.ylabel('PCA weight [1]',fontsize = 18)
+
+
+n_lines = 16
+# fig, ax = plt.subplots()
+plt.title('Truncated PCA bases')
+
+cmap = plt.cm.get_cmap('jet', n_lines)
+
+for i in range(n_lines):
+
+    fig = plt.plot(PCAbases[:150,i], lw = 1.0, alpha = 0.8)
+
+# cbar = plt.colorbar(fig)
+# cbar.ax.set_ylabel(r'$z_m$', fontsize = 18)
+plt.tight_layout()
+plt.savefig('Plots/Bases.png', figsize= (28,24), bbox_inches="tight", dpi = 900)
 
 
 
