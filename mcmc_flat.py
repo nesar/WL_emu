@@ -245,9 +245,9 @@ for x_id in [3, 23, 43, 64, 83, 109]:
 #### parameters that define the MCMC
 
 ndim = 7
-nwalkers = 100  # 200 #600  # 500
+nwalkers = 500  # 200 #600  # 500
 nrun_burn = 50  # 50 # 50  # 300
-nrun = 200  # 300  # 700
+nrun = 700  # 300  # 700
 fileID = 1
 
 ########## REAL DATA with ERRORS #############################
@@ -410,6 +410,7 @@ np.savetxt('Data/Chains/SamplerPCA_mcmc_ndim' + str(ndim) + '_nwalk' + str(nwalk
 samples_plot = np.loadtxt('Data/Chains/SamplerPCA_mcmc_ndim' + str(ndim) + '_nwalk' + str(
     nwalkers) + '_run' + str(nrun) + '.txt')
 
+
 # samples = np.exp(samples)
 p1_mcmc, p2_mcmc, p3_mcmc, p4_mcmc, p5_mcmc, p6_mcmc, p7_mcmc = map(lambda v: (v[1], v[2] - v[1],
                                                                                v[1] - v[0]) , zip(*np.percentile(samples, [16, 50, 84], axis=0)))
@@ -430,6 +431,41 @@ if CornerPlot:
 
     fig.savefig('Plots/pygtcPCA_' + str(ndim) + '_nwalk' + str(nwalkers) + '_run' + str(
         nrun) +  '.pdf')
+
+
+#### Other plotting routines ###############
+
+
+para1 = ["$\omega_c$", 0.1188, 0.12, 0.155]  # Actual 0.119
+para2 = ["$\omega_b$", 0.02230, 0.0215, 0.0235]
+para3 = ["$\sigma_8$", 0.8159, 0.7, 0.89]
+para4 = ["$h$", 0.6774, 0.55, 0.85]
+para5 = ["$n_s$", 0.9667, 0.85, 1.05]
+
+para6 = ["$z_m$", 1.0, 0.5, 1.5] # z_m
+para7 = ["FWHM", 0.25, 0.05, 0.5] # FWHM
+
+
+nrun = 600
+nwalkers = 500
+samples_plot = np.loadtxt('Data/Chains/SamplerPCA_mcmcdiag_ndim' + str(ndim) + '_nwalk' + str(
+    nwalkers) + '_run' + str(nrun) + '.txt')
+
+
+
+samples_plot_new = np.array([samples_plot[:, 0], samples_plot[:, 3], samples_plot[:, 5]]).T  # 0, 3 ,5
+
+CornerPlot = True
+if CornerPlot:
+
+    fig = pygtc.plotGTC(samples_plot_new,
+                        paramNames=[para1[0], para4[0], para6[0]],
+                        truths=[para1[1], para4[1], para6[1]],
+                        figureSize='MNRAS_page')  # , plotDensity = True, filledPlots = False,\smoothingKernel = 0, nContourLevels=3)
+
+    fig.savefig('Plots/pygtcDiagPCA_' + str(ndim) + '_nwalk' + str(nwalkers) + '_run' + str(
+        nrun) +  '.png')
+
 
 ####### FINAL PARAMETER ESTIMATES #######################################
 #

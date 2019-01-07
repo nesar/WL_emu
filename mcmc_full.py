@@ -246,9 +246,9 @@ for x_id in [3, 23, 43, 64, 83, 109]:
 #### parameters that define the MCMC
 
 ndim = 7
-nwalkers = 100  # 200 #600  # 500
+nwalkers = 300  # 200 #600  # 500
 nrun_burn = 50  # 50 # 50  # 300
-nrun = 200  # 300  # 700
+nrun = 300  # 300  # 700
 fileID = 1
 
 ########## REAL DATA with ERRORS #############################
