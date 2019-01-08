@@ -113,22 +113,22 @@ def create_emu(dirIn,paramIn):
     # filelist = os.listdir(dirIn)
     filelist = glob.glob(dirIn + 'cls*')
     #filelist = glob.glob(dirIn + 'flat*')
-<<<<<<< HEAD
+    #<<<<<<< HEAD
     print filelist[0]
     filelist = sorted(filelist, key=lambda x: int(os.path.splitext(x)[0][17:]))
 
     Px_flatflat = np.array([np.loadtxt(f) for f in filelist])
     ### Px_flatnan = np.unique(np.array(np.argwhere(np.isnan(Px_flatflat)) )[:,0])
     #Px_flatflat = Px_flatflat[: ,:, 1]
-
-=======
+    #
+    #=======
     filelist = sorted(filelist, key=lambda x: int(os.path.splitext(x)[0][17:]))
     print(filelist)
     Px_flatflat = np.array([np.loadtxt(f) for f in filelist])
     ### Px_flatnan = np.unique(np.array(np.argwhere(np.isnan(Px_flatflat)) )[:,0])
     #Px_flatflat = Px_flatflat[: ,:, 1]
     print(Px_flatflat)
->>>>>>> 781ecd6ca403431b2968752b9e7a40fe0f179af7
+    #>>>>>>> 781ecd6ca403431b2968752b9e7a40fe0f179af7
 
     nan_idx = [~np.isnan(Px_flatflat).any(axis=1)]
     Px_flatflat = Px_flatflat[nan_idx]

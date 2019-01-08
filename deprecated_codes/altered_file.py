@@ -5,6 +5,7 @@ Created on Jun 29, 2017
 
 import sys
 sys.path.append('/home/nes/Desktop/AstroVAE/WL_emu/Codes/deprecated_codes/wle_numba/')
+sys.path.append('/Users/tricia/Documents/Work_files/WL_Emulator/deprecated_codes/wle_numba/')
 import numpy as np
 import subprocess as sp
 from numba import jit

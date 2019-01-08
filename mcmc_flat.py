@@ -1,5 +1,10 @@
 ##### Generic packages ###############
 import numpy as np
+
+import matplotlib 
+matplotlib.use('agg')
+# note: only required for MACOS
+
 import matplotlib.pylab as plt
 import time
 import glob
@@ -71,9 +76,12 @@ def lnprob(theta, x, y, yerr):
 
 
 ############################# PARAMETERS ##############################
+basedir = "/home/nes/Desktop/AstroVAE/WL_emu/Codes/"
+basedir = "/Users/tricia/Documents/Work_files/WL_Emulator/"
 
-dirIn = "/home/nes/Desktop/AstroVAE/WL_emu/Codes/deprecated_codes/cl_outputs/"  ## Input Cl files
-paramIn = "/home/nes/Desktop/AstroVAE/WL_emu/Codes/lhc_128.txt"  ## 8 parameter file
+
+dirIn = basedir + "deprecated_codes/cl_outputs/"  ## Input Cl files
+paramIn = basedir + "lhc_128.txt"  ## 8 parameter file
 nRankMax = 48  ## Number of basis vectors in truncated PCA
 GPmodel = '"R_GP_model_flat' + str(nRankMax) + '.RData"'  ## Double and single quotes are necessary
 
@@ -89,7 +97,10 @@ RcppCNPy = importr('RcppCNPy')
 # filelist = os.listdir(dirIn)
 # filelist = glob.glob(dirIn + 'cls*')
 filelist = glob.glob(dirIn + 'flat*')
-filelist = sorted(filelist, key=lambda x: int(os.path.splitext(x)[0][74:]))
+import re
+filelist = sorted(filelist, key=lambda x: int(re.findall('\d+',x)[0]))
+#
+#filelist = sorted(filelist, key=lambda x: int(os.path.splitext(x)[0][74:]))
 
 Px_flatflat = np.array([np.loadtxt(f) for f in filelist])
 
@@ -259,10 +270,14 @@ fileID = 1
 
 ########## REAL DATA with ERRORS #############################
 
-dirDataIn = "/home/nes/Desktop/AstroVAE/WL_emu/Codes/deprecated_codes/test_data/"
-Cl = np.loadtxt(dirDataIn + 'xip_vals.txt')
+dirDataIn = basedir + "deprecated_codes/test_data/"
+#Cl = np.loadtxt(dirDataIn + 'xip_vals.txt')
+Cl = np.loadtxt(dirDataIn + 'xip_vals_fake_2.txt')
 # Cl = np.log(Cl)
-cov_mat = np.loadtxt(dirDataIn + 'cp_xip50.txt')
+cov_mat = np.loadtxt(dirDataIn + 'cp_fake_diag_2.txt')
+# one output - flatP_100.txt, but with 2% gaussian error
+# should be simpler test to deal with
+#cov_mat = np.loadtxt(dirDataIn + 'cp_xip50.txt')
 
 lsmax = 30
 ls_cond = np.where(l < lsmax)
@@ -278,6 +293,8 @@ x = x[ls_cond]
 y = y[ls_cond]
 yerr_diag = yerr_diag[ls_cond]
 # emax = emax[ls_cond][:,ls_cond][:,0,:]
+print ls_cond
+print(len(ls_cond[0]))
 cov_mat =  cov_mat[:len(ls_cond[0]), :len(ls_cond[0])]
 ## Only works if slicing is done at a corner.
 # i.e., if ls_cond corresponds to continuous array entries in l
@@ -293,27 +310,40 @@ ax0.errorbar(x[::], y[::], yerr= yerr_diag[::] , marker='o',
        markersize = 2,
        capsize=0,
        linestyle='None')
-plt.show()
-
+#plt.show()
+plt.savefig('Plots/PowerSpect_emu.pdf')
+stop
 
 plt.figure(43)
 plt.imshow(cov_mat)
 plt.colorbar()
-plt.show()
+#plt.show()
 
 plt.savefig('Plots/PowerSpect_emu.pdf')
 
 #### Cosmological Parameters ########################################
+# new param list to match example output
+
+para1 = ["$\Omega_c h^2$", 0.1316, 0.12, 0.155]  # Actual 0.119
+para2 = ["$\Omega_b h^2$", 0.02241339, 0.0215, 0.0235]
+para3 = ["$\sigma_8$", 0.7, 0.7, 0.89]
+para4 = ["$h$", 0.72952756, 0.55, 0.85]
+para5 = ["$n_s$", 0.95866142, 0.85, 1.05]
+
+para6 = ["$z_m$", 1.10629921, 0.5, 1.5] # z_m
+para7 = ["FWHM", 0.3476378, 0.05, 0.5] # FWHM
 
 
-para1 = ["$\Omega_c h^2$", 0.1188, 0.12, 0.155]  # Actual 0.119
-para2 = ["$\Omega_b h^2$", 0.02230, 0.0215, 0.0235]
-para3 = ["$\sigma_8$", 0.8159, 0.7, 0.89]
-para4 = ["$h$", 0.6774, 0.55, 0.85]
-para5 = ["$n_s$", 0.9667, 0.85, 1.05]
 
-para6 = ["$z_m$", 1.0, 0.5, 1.5] # z_m
-para7 = ["FWHM", 0.25, 0.05, 0.5] # FWHM
+
+#para1 = ["$\Omega_c h^2$", 0.1188, 0.12, 0.155]  # Actual 0.119
+#para2 = ["$\Omega_b h^2$", 0.02230, 0.0215, 0.0235]
+#para3 = ["$\sigma_8$", 0.8159, 0.7, 0.89]
+#para4 = ["$h$", 0.6774, 0.55, 0.85]
+#para5 = ["$n_s$", 0.9667, 0.85, 1.05]
+
+#para6 = ["$z_m$", 1.0, 0.5, 1.5] # z_m
+#para7 = ["FWHM", 0.25, 0.05, 0.5] # FWHM
 
 #################### CHAIN INITIALIZATION ##########################
 

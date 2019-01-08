@@ -1,5 +1,10 @@
 ##### Generic packages ###############
 import numpy as np
+
+import matplotlib 
+matplotlib.use('agg')
+# note: only required for MACOS
+
 import matplotlib.pylab as plt
 import time
 import glob
@@ -74,11 +79,11 @@ def lnprob(theta, x, y, yerr):
 basedir = "/home/nes/Desktop/AstroVAE/WL_emu/Codes/"
 basedir = "/Users/tricia/Documents/Work_files/WL_Emulator/"
 
+
 dirIn = basedir + "deprecated_codes/cl_outputs/"  ## Input Cl files
 paramIn = basedir + "lhc_128.txt"  ## 8 parameter file
-nRankMax = 48 ## Number of basis vectors in truncated PCA
-GPmodel = '"RModels/R_GP_model_flat' + str(nRankMax) + '.RData"'  ## Double and single quotes are
-# necessary
+nRankMax = 48  ## Number of basis vectors in truncated PCA
+GPmodel = '"R_GP_model_flat' + str(nRankMax) + '.RData"'  ## Double and single quotes are necessary
 
 ################################# I/O #################################
 l = np.loadtxt(dirIn + 'xvals.txt')
@@ -91,22 +96,17 @@ RcppCNPy = importr('RcppCNPy')
 
 # filelist = os.listdir(dirIn)
 # filelist = glob.glob(dirIn + 'cls*')
-filelist = glob.glob(dirIn + 'cls*')
-
-# PL: making this less environment dependent
-print(filelist)
+filelist = glob.glob(dirIn + 'flat*')
 import re
 filelist = sorted(filelist, key=lambda x: int(re.findall('\d+',x)[0]))
-# note you can probably do this to accept only the last integer in the path which would be more robust
-#filelist = sorted(filelist, key=lambda x: int(os.path.splitext(x)[0][72:]))
+#
+#filelist = sorted(filelist, key=lambda x: int(os.path.splitext(x)[0][74:]))
 
 Px_flatflat = np.array([np.loadtxt(f) for f in filelist])
 
 ### Px_flatnan = np.unique(np.array(np.argwhere(np.isnan(Px_flatflat)) )[:,0])
-print(np.shape(Px_flatflat))
-# note: fix because this should be full-sky not flat-sky
-#Px_flatflat = Px_flatflat[: ,:, 1]
-Px_flatflat = Px_flatflat[: ,:]
+
+Px_flatflat = Px_flatflat[: ,:, 1]
 
 
 nan_idx = [~np.isnan(Px_flatflat).any(axis=1)]
@@ -202,6 +202,58 @@ def GP_predict(para_array):
 ##################################### TESTING ##################################
 
 
+x_decodedGPy = GP_predict(parameter_array[0])
+# this is the prediction for this parameter array. 
+print(parameter_array[0])
+
+# parameter, at cosmology defined by first with limits of second and third (not needed if you've correctly used delta), can set difference, but let's just assume the difference is a percentage
+para1 = ["$\Omega_c h^2$", 0.1316, 0.12, 0.155]  # Actual 0.119
+para2 = ["$\Omega_b h^2$", 0.02241339, 0.0215, 0.0235]
+para3 = ["$\sigma_8$", 0.7, 0.7, 0.89]
+para4 = ["$h$", 0.72952756, 0.55, 0.85]
+para5 = ["$n_s$", 0.95866142, 0.85, 1.05]
+para6 = ["$z_m$", 1.10629921, 0.5, 1.5] # z_m
+para7 = ["FWHM", 0.3476378, 0.05, 0.5] # FWHM
+
+
+def fisher(parameter_array,covmat):
+    ''' compute the fisher matrices from the emulator, requires input covariance matrix '''
+    nparams = len(parameter_array)
+    parameter_array_upper = np.tile(parameter_array,nparams)
+    parameter_array_lower = np.tile(parameter_array,nparams)
+    for i in range(nparams):
+        parameter_array_upper[i][i] = parameter_array_upper[i][i]*1.025
+        parameter_array_lower[i][i] = parameter_array_lower[i][i]*0.975
+    Cl_nominal = GP_predict(parameter_array)
+    nl = len(Cl_nominal)
+    Cl_upper = np.zeros((nl,nparams))
+    Cl_lower = np.zeros((nl,nparams))
+    Cl_diff = np.zeros((nl,nparams))
+    for i in range(nparams):
+        Cl_upper[:,i] = GP_predict(parameter_array_upper[i])
+        Cl_lower[:,i] = GP_predict(parameter_array_lower[i])
+        Cl_total[:,i] = (Cl_upper - Cl_lower)/(parameter_array[i]*0.05)
+        # now we have delta C_l / delta pi
+    F = np.mat(Cl_total)*np.linalg.inv(covmat)*np.mat(Cl_tot).T
+    return F
+
+def cov_simple(parameter_array):
+    ''' 1 / fsky / (2l+1) /dl < GWL GWL GWL GWL > '''
+    # compute quadrupole term - note this is actually (GWL + NWL)^4
+    # assumption of gaussianity gives (GWL)^2(GWL)^2 + (GWL)^4 + (NWL)^4 + (GWL)^2(NWL)^2
+    # Most of these are simple enough, should be able to find an analytical expression of ~ C_l^2 + ... 
+    # note noise is thesis eq 1.49, constant term
+    return 
+
+# then we want to add some prior term onto this probably. 
+# and then make plot
+
+
+#then want to do a simple noise covariance matrix, and a wa/w0 figure from that. 
+# if you can get derivatives directly from the emulator this would be better, but for now this is fine. 
+
+stop
+
 plt.rc('text', usetex=True)  # Slower
 plt.rc('font', size=12)  # 18 usually
 
@@ -271,9 +323,13 @@ fileID = 1
 ########## REAL DATA with ERRORS #############################
 
 dirDataIn = basedir + "deprecated_codes/test_data/"
-Cl = np.loadtxt(dirDataIn + 'xip_vals.txt')
+#Cl = np.loadtxt(dirDataIn + 'xip_vals.txt')
+Cl = np.loadtxt(dirDataIn + 'xip_vals_fake_2.txt')
 # Cl = np.log(Cl)
-cov_mat = np.loadtxt(dirDataIn + 'cp_xip50.txt')
+cov_mat = np.loadtxt(dirDataIn + 'cp_fake_diag_2.txt')
+# one output - flatP_100.txt, but with 2% gaussian error
+# should be simpler test to deal with
+#cov_mat = np.loadtxt(dirDataIn + 'cp_xip50.txt')
 
 lsmax = 30
 ls_cond = np.where(l < lsmax)
@@ -289,6 +345,8 @@ x = x[ls_cond]
 y = y[ls_cond]
 yerr_diag = yerr_diag[ls_cond]
 # emax = emax[ls_cond][:,ls_cond][:,0,:]
+print ls_cond
+print(len(ls_cond[0]))
 cov_mat =  cov_mat[:len(ls_cond[0]), :len(ls_cond[0])]
 ## Only works if slicing is done at a corner.
 # i.e., if ls_cond corresponds to continuous array entries in l
@@ -304,20 +362,18 @@ ax0.errorbar(x[::], y[::], yerr= yerr_diag[::] , marker='o',
        markersize = 2,
        capsize=0,
        linestyle='None')
-# plt.show()
-
+#plt.show()
 plt.savefig('Plots/PowerSpect_emu.pdf')
-
+stop
 
 plt.figure(43)
 plt.imshow(cov_mat)
 plt.colorbar()
-# plt.show()
+#plt.show()
 
-plt.savefig('Plots/Cov_mat.pdf')
+plt.savefig('Plots/PowerSpect_emu.pdf')
 
 #### Cosmological Parameters ########################################
-
 # new param list to match example output
 
 para1 = ["$\Omega_c h^2$", 0.1316, 0.12, 0.155]  # Actual 0.119
@@ -331,8 +387,6 @@ para7 = ["FWHM", 0.3476378, 0.05, 0.5] # FWHM
 
 
 
-
-#######
 
 #para1 = ["$\Omega_c h^2$", 0.1188, 0.12, 0.155]  # Actual 0.119
 #para2 = ["$\Omega_b h^2$", 0.02230, 0.0215, 0.0235]

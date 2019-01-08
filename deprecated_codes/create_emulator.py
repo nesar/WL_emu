@@ -41,7 +41,9 @@ output_dir_cl = 'cl_outputs_g'
 # Run theory code at latin hypercube positions - note this is currently only the full-sky version
 os.system('rm cl_outputs_g/*');
 
+print(len(params))
 for j in range(len(params)):
+    print(j)
     os.system('rm pk_outputs_g/*');
     run_pk_emu.create_pk('pk_outputs_g',params,0,5,0.0,2.0,100)
     l,c = altered_file.multiple_zs(params[j][0],params[j][3]*100,input_nz=True)
@@ -59,3 +61,4 @@ import gp_emulation
 
 gp_emulation.create_emu(output_dir_cl+'/','lhc_32_5.txt')
 
+print("created emulator")
