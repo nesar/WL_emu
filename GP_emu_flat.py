@@ -38,8 +38,9 @@ from rpy2.robjects.packages import importr
 dirIn = "/home/nes/Desktop/AstroVAE/WL_emu/Codes/deprecated_codes/cl_outputs/"  ## Input Cl files
 paramIn = "/home/nes/Desktop/AstroVAE/WL_emu/Codes/lhc_128.txt"  ## 8 parameter file
 nRankMax = 32  ## Number of basis vectors in truncated PCA
-GPmodel = '"RModels/R_GP_model_flat' + str(nRankMax) + '.RData"'  ## Double and single quotes are necessary
-
+GPmodel = '"RModels/R_GP_model_flat21' + str(nRankMax) + '.RData"'  ## Double and single quotes
+# are necessary
+num_holdout = 4
 ################################# I/O #################################
 RcppCNPy = importr('RcppCNPy')
 # RcppCNPy.chooseCRANmirror(ind=1) # select the first mirror in the list
@@ -52,20 +53,26 @@ RcppCNPy = importr('RcppCNPy')
 filelist = glob.glob(dirIn + 'flat*')
 filelist = sorted(filelist, key=lambda x: int(os.path.splitext(x)[0][74:]))
 
-Px_flatflat = np.array([np.loadtxt(f) for f in filelist])
+Px_flat = np.array([np.loadtxt(f) for f in filelist])
 
-### Px_flatnan = np.unique(np.array(np.argwhere(np.isnan(Px_flatflat)) )[:,0])
+### Px_flatnan = np.unique(np.array(np.argwhere(np.isnan(Px_flat)) )[:,0])
 
-Px_flatflat = Px_flatflat[: ,:, 1]
-
-
-nan_idx = [~np.isnan(Px_flatflat).any(axis=1)]
-Px_flatflat = Px_flatflat[nan_idx]
-Px_flatflat = np.log(Px_flatflat[:, ::2])
+Px_flat = Px_flat[: ,:, 1]
 
 
-nr, nc = Px_flatflat[:,:].shape
-y_train = ro.r.matrix(Px_flatflat[:,:], nrow=nr, ncol=nc)
+nan_idx = [~np.isnan(Px_flat).any(axis=1)]
+Px_flat = Px_flat[nan_idx]
+# Px_flat = np.log(Px_flat[:, ::2])
+Px_flat = np.log10(Px_flat[:, ::])
+
+
+# nr, nc = Px_flat[:,:].shape
+# y_train = ro.r.matrix(Px_flat[:,:], nrow=nr, ncol=nc)
+
+nr, nc = Px_flat[num_holdout:, :].shape
+y_train = ro.r.matrix(Px_flat[num_holdout:, :], nrow=nr, ncol=nc)
+
+
 
 ro.r.assign("y_train2", y_train)
 r('dim(y_train2)')
@@ -73,8 +80,11 @@ r('dim(y_train2)')
 parameter_array = np.loadtxt(paramIn)
 parameter_array = parameter_array[nan_idx]
 
-nr, nc = parameter_array[:,:].shape
-u_train = ro.r.matrix(parameter_array[:,:], nrow=nr, ncol=nc)
+# nr, nc = parameter_array[:,:].shape
+# u_train = ro.r.matrix(parameter_array[:,:], nrow=nr, ncol=nc)
+
+nr, nc = parameter_array[num_holdout:, :].shape
+u_train = ro.r.matrix(parameter_array[num_holdout:, :], nrow=nr, ncol=nc)
 
 ro.r.assign("u_train2", u_train)
 r('dim(u_train2)')
@@ -163,34 +173,36 @@ ax1 = plt.subplot(gs[1])
 
 ax0.set_ylabel(r'$P(x)$ (flat)')
 
-ax1.axhline(y=1, ls='dotted')
 # ax1.axhline(y=-1e-6, ls='dashed')
 # ax1.axhline(y=1e-6, ls='dashed')
 
 ax1.set_xlabel(r'$x$')
+ax1.axhline(y=0, ls='dashed')
 
-ax0.set_xscale('log')
-ax1.set_xscale('log')
+
+ax0.set_yscale('log', base = 10)
+ax0.set_xscale('log', base = 10)
+ax1.set_xscale('log', base = 10)
 
 ax1.set_ylabel(r'emu/real - 1')
-ax1.set_ylim(-2e-2, 2e-2)
+ax1.set_ylim(-5e-3, 5e-3)
 
-ax0.plot(Px_flatflat.T, alpha=0.03, color='k')
+ax0.plot(10**Px_flat.T, alpha=0.03, color='k')
 
-for x_id in [13, 24, 64, 83, 109]:
-# for x_id in range(7):
+# for x_id in [13, 24, 64, 83, 109]:
+for x_id in range(0, num_holdout):
 
     time0 = time.time()
     x_decodedGPy = GP_predict(parameter_array[x_id])  ## input parameters
     time1 = time.time()
     print('Time per emulation %0.2f' % (time1 - time0), ' s')
-    x_test = Px_flatflat[x_id]
+    x_test = Px_flat[x_id]
 
-    ax0.plot(x_decodedGPy, alpha=1.0, ls='--', label='emu')
-    ax0.plot(x_test, alpha=0.9, label='real')
+    ax0.plot(10**x_decodedGPy, alpha=1.0, ls='--', label='emu')
+    ax0.plot(10**x_test, alpha=0.9, label='real')
     plt.legend()
 
-    ax1.plot(x_decodedGPy[1:] / x_test[1:] - 1)
+    ax1.plot( (10**x_decodedGPy[1:]) / (10**x_test[1:])  - 1)
 
 plt.show()
 

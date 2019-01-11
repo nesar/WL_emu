@@ -41,8 +41,9 @@ from rpy2.robjects.packages import importr
 dirIn = "/home/nes/Desktop/AstroVAE/WL_emu/Codes/deprecated_codes/cl_outputs/"   ## Input Cl files
 paramIn = "/home/nes/Desktop/AstroVAE/WL_emu/Codes/lhc_128.txt"   ## 8 parameter file
 nRankMax = 32    ## Number of basis vectors in truncated PCA
-GPmodel = '"R_GP_model135' + str(nRankMax) + '.RData"'  ## Double and single quotes are necessary
+GPmodel = '"R_GP_model1225' + str(nRankMax) + '.RData"'  ## Double and single quotes are necessary
 
+num_holdout = 4
 ################################# I/O #################################
 RcppCNPy = importr('RcppCNPy')
 # RcppCNPy.chooseCRANmirror(ind=1) # select the first mirror in the list
@@ -70,14 +71,15 @@ nan_idx = [~np.isnan(Cls).any(axis=1)]
 
 Cls = Cls[nan_idx]
 
-Cls = np.log(Cls[:, 1::2])
+# Cls = np.log(Cls[:, 1::2])
+Cls = np.log10(Cls[:, 1::])
 
 
-# nr, nc = Cls[4:, :].shape
-# y_train = ro.r.matrix(Cls[4:, :], nrow=nr, ncol=nc)
+nr, nc = Cls[num_holdout:, :].shape
+y_train = ro.r.matrix(Cls[num_holdout:, :], nrow=nr, ncol=nc)
 
-nr, nc = Cls.shape
-y_train = ro.r.matrix(Cls, nrow=nr, ncol=nc)
+# nr, nc = Cls.shape
+# y_train = ro.r.matrix(Cls, nrow=nr, ncol=nc)
 
 
 ro.r.assign("y_train2", y_train)
@@ -87,11 +89,11 @@ r('dim(y_train2)')
 parameter_array = np.loadtxt(paramIn)
 parameter_array = parameter_array[nan_idx]
 
-# nr, nc = parameter_array[4:, :].shape
-# u_train = ro.r.matrix(parameter_array[4:, :], nrow=nr, ncol=nc)
+nr, nc = parameter_array[num_holdout:, :].shape
+u_train = ro.r.matrix(parameter_array[num_holdout:, :], nrow=nr, ncol=nc)
 
-nr, nc = parameter_array.shape
-u_train = ro.r.matrix(parameter_array, nrow=nr, ncol=nc)
+# nr, nc = parameter_array.shape
+# u_train = ro.r.matrix(parameter_array, nrow=nr, ncol=nc)
 
 ro.r.assign("u_train2", u_train)
 r('dim(u_train2)')
@@ -187,7 +189,7 @@ ax0.set_ylabel(r'$l(l+1)C_l$', fontsize = 15)
 
 ax0.set_xlabel(r'$l$', fontsize = 15)
 
-ax0.set_xscale('log')
+ax0.set_xscale('log', base = 10)
 # ax1.set_xscale('log')
 
 # ax1.set_ylabel(r'emu/real - 1')
@@ -223,18 +225,20 @@ ax1.axhline(y=0, ls='dashed')
 
 ax1.set_xlabel(r'$l$', fontsize = 15)
 
-ax0.set_xscale('log')
-ax1.set_xscale('log')
+
+ax0.set_yscale('log', base = 10)
+ax0.set_xscale('log', base = 10)
+ax1.set_xscale('log', base = 10)
 
 ax1.set_ylabel(r'emu/real - 1')
-ax1.set_ylim(-1e-5, 1e-5)
+ax1.set_ylim(-1e-2, 1e-2)
 
 
-ax0.plot(Cls.T, alpha = 0.03, color = 'k')
+ax0.plot(10**Cls.T, alpha = 0.03, color = 'k')
 
-for x_id in [23, 83, 54, 83, 111]:
+# for x_id in [23, 83, 54, 83, 111]:
 #
-# for x_id in range(0, 4):
+for x_id in range(0, num_holdout):
 
     time0 = time.time()
     x_decodedGPy = GP_predict(parameter_array[x_id])  ## input parameters
@@ -242,11 +246,12 @@ for x_id in [23, 83, 54, 83, 111]:
     print('Time per emulation %0.2f'% (time1 - time0), ' s')
     x_test = Cls[x_id]
 
-    ax0.plot(x_decodedGPy, alpha=1.0, ls='--', label='emu')
-    ax0.plot(x_test, alpha=0.9, label='real')
+    ax0.plot(10**x_decodedGPy, alpha=1.0, ls='--', label='emu')
+    ax0.plot(10**x_test, alpha=0.9, label='real')
     plt.legend()
 
-    ax1.plot(x_decodedGPy[1:] / x_test[1:] - 1)
+    ax1.plot(  (10**x_decodedGPy[1:])/(10**x_test[1:]) - 1)
+    # ax1.plot(  (x_decodedGPy[1:])/(x_test[1:]) - 1)
 
 
 plt.savefig('Plots/ClEmu.png', figsize= (28,24), bbox_inches="tight", dpi = 900)
@@ -270,7 +275,7 @@ plt.figure(900, figsize=(8,6))
 plt.title('Truncated PCA weights')
 plt.xlabel('PCA weight [0]',fontsize = 18)
 plt.ylabel('PCA weight [1]',fontsize = 18)
-CS = plt.scatter(PCAweights[:, 0], PCAweights[:, 1], c = parameter_array[:, 2], s = 200, alpha=0.8)
+CS = plt.scatter(PCAweights[:, 0], PCAweights[:, 1], c = parameter_array[num_holdout:, 2], s = 200, alpha=0.8)
 cbar = plt.colorbar(CS)
 cbar.ax.set_ylabel(r'$\sigma_8$', fontsize = 18)
 plt.tight_layout()
@@ -283,7 +288,7 @@ plt.figure(901, figsize=(8,6))
 plt.title('Truncated PCA weights')
 plt.xlabel('PCA weight [0]',fontsize = 18)
 plt.ylabel('PCA weight [1]',fontsize = 18)
-CS = plt.scatter(PCAweights[:, 0], PCAweights[:, 1], c = parameter_array[:, 5], s = 200, alpha=0.8)
+CS = plt.scatter(PCAweights[:, 0], PCAweights[:, 1], c = parameter_array[num_holdout:, 5], s = 200, alpha=0.8)
 cbar = plt.colorbar(CS)
 cbar.ax.set_ylabel(r'$z_m$', fontsize = 18)
 plt.tight_layout()
