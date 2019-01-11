@@ -436,6 +436,9 @@ if CornerPlot:
 #### Other plotting routines ###############
 
 
+plt.rc('text', usetex=True)  # Slower
+plt.rc('font', size=20)  # 18 usually
+
 para1 = ["$\omega_c$", 0.1188, 0.12, 0.155]  # Actual 0.119
 para2 = ["$\omega_b$", 0.02230, 0.0215, 0.0235]
 para3 = ["$\sigma_8$", 0.8159, 0.7, 0.89]
@@ -448,6 +451,7 @@ para7 = ["FWHM", 0.25, 0.05, 0.5] # FWHM
 
 nrun = 600
 nwalkers = 500
+ndim = 7
 samples_plot = np.loadtxt('Data/Chains/SamplerPCA_mcmcdiag_ndim' + str(ndim) + '_nwalk' + str(
     nwalkers) + '_run' + str(nrun) + '.txt')
 
@@ -460,7 +464,6 @@ if CornerPlot:
 
     fig = pygtc.plotGTC(samples_plot_new,
                         paramNames=[para1[0], para4[0], para6[0]],
-                        truths=[para1[1], para4[1], para6[1]],
                         figureSize='MNRAS_page')  # , plotDensity = True, filledPlots = False,\smoothingKernel = 0, nContourLevels=3)
 
     fig.savefig('Plots/pygtcDiagPCA_' + str(ndim) + '_nwalk' + str(nwalkers) + '_run' + str(

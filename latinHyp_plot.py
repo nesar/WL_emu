@@ -45,11 +45,11 @@ elif(num_params>5):
 
 if (num_params==5):
     AllPara = np.vstack([para1, para2, para3, para4, para5])
-    AllLabels = [r'$\tilde{\Omega}_m$', r'$\tilde{\Omega}_b$', r'$\tilde{\sigma}_8$', r'$\tilde{'
+    AllLabels = [r'$\tilde{\omega}_m$', r'$\tilde{\omega}_b$', r'$\tilde{\sigma}_8$', r'$\tilde{'
                  r'h}$', r'$\tilde{n}_s$']
 elif (num_params==7):
     AllPara = np.vstack([para1, para2, para3, para4, para5, para6, para7])
-    AllLabels = [r'$\tilde{\Omega}_m$', r'$\tilde{\Omega}_b$', r'$\tilde{\sigma}_8$', r'$\tilde{'
+    AllLabels = [r'$\tilde{\omega}_m$', r'$\tilde{\omega}_b$', r'$\tilde{\sigma}_8$', r'$\tilde{'
                  r'h}$', r'$\tilde{n}_s$', r'$\tilde{z}_m$', r'$\tilde{FWHM}$']
 
 #########################################################################
@@ -67,7 +67,7 @@ if verbose:
 if verbose:
     f, a = plt.subplots(AllPara.shape[0], AllPara.shape[0], sharex=True, sharey=True)
     plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=None, hspace=None)
-    plt.rcParams.update({'font.size': 6})
+    plt.rcParams.update({'font.size': 4})
 
     for i in range(AllPara.shape[0]):
         for j in range(i+1):
@@ -86,7 +86,7 @@ if verbose:
                 plt.xlim(0,1)
                 plt.ylim(0,1)
     # plt.tight_layout()
-    plt.savefig('Plots/LatinSq.png', figsize=(5, 5), bbox_inches="tight", dpi = 900)
+    plt.savefig('Plots/LatinSq.pdf', figsize=(5000, 5000), bbox_inches="tight", dpi = 900)
 
     plt.show()
 
