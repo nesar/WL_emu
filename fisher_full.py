@@ -77,11 +77,11 @@ basedir = "/Users/tricia/Documents/Work_files/WL_Emulator/"
 dirIn = basedir + "deprecated_codes/cl_outputs/"  ## Input Cl files
 paramIn = basedir + "lhc_128.txt"  ## 8 parameter file
 nRankMax = 48 ## Number of basis vectors in truncated PCA
-GPmodel = '"RModels/R_GP_model_flat' + str(nRankMax) + '.RData"'  ## Double and single quotes are
+GPmodel = '"RModels/R_GP_model_full' + str(nRankMax) + '.RData"'  ## Double and single quotes are
 # necessary
 
 ################################# I/O #################################
-l = np.loadtxt(dirIn + 'xvals.txt')
+l = np.loadtxt(dirIn + 'ls.txt')
 
 RcppCNPy = importr('RcppCNPy')
 # RcppCNPy.chooseCRANmirror(ind=1) # select the first mirror in the list
@@ -94,7 +94,7 @@ RcppCNPy = importr('RcppCNPy')
 filelist = glob.glob(dirIn + 'cls*')
 
 # PL: making this less environment dependent
-print(filelist)
+#print(filelist)
 import re
 filelist = sorted(filelist, key=lambda x: int(re.findall('\d+',x)[0]))
 # note you can probably do this to accept only the last integer in the path which would be more robust
@@ -112,23 +112,31 @@ Px_flatflat = Px_flatflat[: ,:]
 nan_idx = [~np.isnan(Px_flatflat).any(axis=1)]
 Px_flatflat = Px_flatflat[nan_idx]
 Px_flatlog = np.log10(Px_flatflat)
-
+print(Px_flatlog[:,0])
 
 nr, nc = Px_flatlog.shape
+for i in range(nr):
+    Px_flatlog[i,0] = 1.0
+print(Px_flatlog[:,0])
+
+
 y_train = ro.r.matrix(Px_flatlog, nrow=nr, ncol=nc)
 
+print(nr,nc)
+#print(y_train)
 ro.r.assign("y_train2", y_train)
 r('dim(y_train2)')
-
+print(np.shape(y_train))
 parameter_array = np.loadtxt(paramIn)
 parameter_array = parameter_array[nan_idx]
-
+#print(np.sum(np.isnan(y_train)))
+#print(np.sum(y_train==0))
+print(np.sum(np.isinf(y_train[0])))
 nr, nc = parameter_array.shape
 u_train = ro.r.matrix(parameter_array, nrow=nr, ncol=nc)
-
+print(nr,nc)
 ro.r.assign("u_train2", u_train)
 r('dim(u_train2)')
-
 
 ########################### PCA ###################################
 def PCA_decomp():
@@ -136,7 +144,6 @@ def PCA_decomp():
     r('require(foreach)')
     # r('nrankmax <- 32')   ## Number of components
     ro.r.assign("nrankmax", nRankMax)
-
     r('svd(y_train2)')
     r('svd_decomp2 <- svd(y_train2)')
     r('svd_weights2 <- svd_decomp2$u[, 1:nrankmax] %*% diag(svd_decomp2$d[1:nrankmax])')
@@ -164,15 +171,15 @@ def GP_fit():
                 mod_s <- km(~., design = u_train2, response = svd_weights2[, i])
                 models_svd2 <- c(models_svd2, list(mod_s))
             }
-            save(models_svd2, file = GPmodel)
+            #save(models_svd2, file = GPmodel)
 
          }''')
 
     r('''''')
 
-
 PCA_decomp()
 GP_fit()
+
 
 
 ######################## GP PREDICTION ###############################
@@ -201,6 +208,195 @@ def GP_predict(para_array):
 
 ##################################### TESTING ##################################
 
+# parameter, at cosmology defined by first with limits of second and third (not needed if you've correctly used delta), can set difference, but let's just assume the difference is a percentage
+para1 = ["$\Omega_c h^2$", 0.1316, 0.12, 0.155]  # Actual 0.119
+para2 = ["$\Omega_b h^2$", 0.02241339, 0.0215, 0.0235]
+para3 = ["$\sigma_8$", 0.7, 0.7, 0.89]
+para4 = ["$h$", 0.72952756, 0.55, 0.85]
+para5 = ["$n_s$", 0.95866142, 0.85, 1.05]
+para6 = ["$z_m$", 1.10629921, 0.5, 1.5] # z_m
+para7 = ["FWHM", 0.3476378, 0.05, 0.5] # FWHM
+
+
+def fisher(parameter_array,covmat,lmin,lmax):
+    ''' compute the fisher matrices from the emulator, requires input covariance matrix '''
+    nparams = len(parameter_array)
+    parameter_array_upper = np.tile(parameter_array,(nparams,1))
+    parameter_array_lower = np.tile(parameter_array,(nparams,1))
+    print(np.shape(parameter_array_upper))
+    for i in range(nparams):
+        parameter_array_upper[i][i] = parameter_array_upper[i][i]*1.025
+        parameter_array_lower[i][i] = parameter_array_lower[i][i]*0.975
+    Cl_nominal = GP_predict(parameter_array)
+    nl = len(Cl_nominal[lmin:lmax])
+    Cl_upper = np.zeros((nl,nparams))
+    Cl_lower = np.zeros((nl,nparams))
+    Cl_diff = np.zeros((nl,nparams))
+    Cl_total = np.zeros((nl,nparams))
+    for i in range(nparams):
+        Cl_upper[:,i] = GP_predict(parameter_array_upper[i])[lmin:lmax]
+        Cl_lower[:,i] = GP_predict(parameter_array_lower[i])[lmin:lmax]
+        Cl_total[:,i] = (Cl_upper[:,i] - Cl_lower[:,i])/(parameter_array[i]*0.05)
+        # now we have delta C_l / delta pi
+    import pickle
+    pickle.dump(Cl_total,open('cl_total.p','w'))
+    F = np.matrix(Cl_total).T*np.linalg.inv(covmat[lmin:lmax,lmin:lmax])*np.matrix(Cl_total)
+    return F
+
+def cov_simple(parameter_array,erms,ngal):
+    ''' 1 / fsky / (2l+1) /dl < GWL GWL GWL GWL > '''
+    cov_mat = np.zeros((10000,10000))
+    Cl = GP_predict(parameter_array)
+    noise = erms/np.sqrt(ngal)
+    for i in range(10000):
+        cov_mat[i,i] = (Cl[i]+noise**2)**2/(2.*i+1.) /(4.*np.pi) # for some reason - check this 4pi please
+        # two things to check here: 4pi and factor of 3
+    cov_mat = np.matrix(cov_mat)
+    # note noise is thesis eq 1.49, constant term
+    return cov_mat
+
+
+parameter_array[0] = [0.119,0.0224,0.8,0.71,0.96,0.9,0.3]
+
+#para1 = ["$\Omega_c h^2$", 0.1316, 0.12, 0.155]  # Actual 0.119
+#para2 = ["$\Omega_b h^2$", 0.02241339, 0.0215, 0.0235]
+#para3 = ["$\sigma_8$", 0.7, 0.7, 0.89]
+#para4 = ["$h$", 0.72952756, 0.55, 0.85]
+#para5 = ["$n_s$", 0.95866142, 0.85, 1.05]
+#para6 = ["$z_m$", 1.10629921, 0.5, 1.5] # z_m
+#para7 = ["FWHM", 0.3476378, 0.05, 0.5] # FWHM
+
+
+
+plt.figure()
+ell = np.arange(10000)
+plt.loglog(np.arange(10000),GP_predict(parameter_array[0]))
+plt.show()
+
+print("computing fisher matrix")
+erms = 0.15
+ngal = 30.0*(60)**2*(180./np.pi)**2 
+print(ngal)
+print(parameter_array[0])
+print(parameter_array[100])
+#ngal/arcmin^2  = ngal/ deg^2 * (deg/arcmin)^2 = ngal / rad^2 * (deg/arcmin)^2 * (rad/deg)^2 
+noise = erms/np.sqrt(ngal)
+
+plt.figure()
+plt.loglog(ell,GP_predict(parameter_array[0])*ell*(ell+1.)/(2.*np.pi))
+plt.loglog(ell,noise**2*np.ones(len(ell)) *ell*(ell+1.)/(2.*np.pi))
+plt.show()
+
+cov_mat = cov_simple(parameter_array[0],erms,ngal)
+print("computed covariance")
+lmax=1000
+lmin=100
+F = fisher(parameter_array[0],cov_mat,lmin,lmax)
+F = np.matrix(F)
+#F = F[:5,:5]
+#F1 = np.zeros((2,2))
+#F1[0,0] = F[5,5]
+#F1[0,1] = F[5,6]
+#F1[1,0] = F[6,5]
+#F1[1,1] = F[6,6]
+#F1 = np.matrix(F1)
+# fix these parameters
+C = F.I
+print(F)
+print(C)
+print("covariance")
+#for i in range(5):
+#    print(C[i,i])
+
+print("done")
+# then we want to add some prior term onto this probably.
+# and then make plot
+
+def create_ellipse_params(C,i,j):
+    c1 = (C[i,i] + C[j,j])/2.
+    c2 = (C[i,i] - C[j,j])**2/4. + C[i,j]**2
+    a2 = c1 + np.sqrt(c2)
+    b2 = c1 - np.sqrt(c2)
+    w,v =np.linalg.eig(C[:2,:2]) # only for 0,1
+    tan2th = np.array(v[0])[0][1]/np.array(v[0])[0][0]
+    #tan2th = 2.*C[i,j]/(C[i,i]-C[j,j])
+    a2 = w[0]
+    b2 = w[1]
+    return a2,b2,tan2th
+
+def plot_fisher(C,parameter_array):
+    parameter_array[0] = parameter_array[0]
+    parameter_array[2]  = parameter_array[1]
+    a2,b2,tan2th = create_ellipse_params(C,0,1)
+    sx = np.sqrt(C[0,0])
+    sy = np.sqrt(C[1,1])
+    import matplotlib.pyplot as plt
+    #plt.figure(991, figsize=(7, 6))
+    from matplotlib import gridspec
+
+    fig1,axs1 = plt.subplots(2,2)#,sharex=True,sharey=True)
+    ax0 = axs1[0,0]
+    ax2 = axs1[1,0]
+    ax3 = axs1[1,1]
+    ax1 = axs1[0,1]
+    ax1.axis('off')
+    print(tan2th)
+    print(tan2th*90/np.pi)
+    print(np.sqrt(a2))
+    print(sx)
+    print(np.sqrt(b2))
+    print(sy)
+    from matplotlib.patches import Ellipse
+    #1.52
+    ell = Ellipse((parameter_array[0],parameter_array[2]),3*np.sqrt(a2),3*np.sqrt(b2),np.arctan(tan2th)*180./np.pi)
+#np.arctan(tan2th)*90./np.pi)
+    ell2 = Ellipse((parameter_array[0],parameter_array[2]),4.9*np.sqrt(a2),4.9*np.sqrt(b2),np.arctan(tan2th)*180./np.pi)
+#np.arctan(tan2th)*90./np.pi)
+    ax2.add_artist(ell)
+    ax2.add_artist(ell2)
+    ell.set_clip_box(ax2.bbox)
+    #ell.set_fill(False)
+    ell.set_alpha(0.4)
+    #ell.set_linestyle('-')
+    ell2.set_clip_box(ax2.bbox)
+    #ell2.set_fill(False)
+    #ell2.set_linestyle('-')
+    ell2.set_alpha(0.4)
+    #ell.set_facecolor(np.random.rand(3))
+    #ell.set_edge
+    ax2.set_xlim(parameter_array[0]-(sx)*3,parameter_array[0]+(sx)*3)
+    ax2.set_ylim(parameter_array[2]-(sy)*3,parameter_array[2]+(sy)*3)
+    ax2.set_xlabel(r'$\Omega_c h^2$')
+    ax2.set_ylabel(r'$\Omega_b h^2$')
+    ax2.tick_params(labelsize=6)
+    #plt.show()
+    from scipy.stats import norm
+    #plt.figure()
+    x1 = np.linspace(parameter_array[0]-(sx)*3,parameter_array[0]+(sx)*3,1000)
+    x2 = np.linspace(parameter_array[2]-(sy)*3,parameter_array[2]+(sy)*3,1000)
+    ax0.plot(x1,norm.pdf(x1,parameter_array[0],sx))
+    #ax0.set_xlabel(r'$\Omega_c h^2$')
+    ax0.set_xlim(parameter_array[0]-(sx)*3,parameter_array[0]+(sx)*3)
+    ax0.set_xticklabels([])
+    ax0.set_yticklabels([])
+    #plt.show()
+    #plt.figure()
+    print(parameter_array[2])
+    ax3.plot(norm.pdf(x2,parameter_array[2],sy),x2)
+    ax3.set_ylim(parameter_array[2]-(sy)*3,parameter_array[2]+(sy)*3)
+    ax3.set_xticklabels([])
+    ax3.set_yticklabels([])
+    plt.savefig('Plots/Fisher_test.pdf',dpi=200)
+    plt.show()
+
+plot_fisher(C,parameter_array[0])
+
+
+#then want to do a simple noise covariance matrix, and a wa/w0 figure from that.
+# if you can get derivatives directly from the emulator this would be better, but for now this is fine.
+
+
+
 
 plt.rc('text', usetex=True)  # Slower
 plt.rc('font', size=12)  # 18 usually
@@ -208,27 +404,30 @@ plt.rc('font', size=12)  # 18 usually
 plt.figure(999, figsize=(7, 6))
 from matplotlib import gridspec
 
-gs = gridspec.GridSpec(2, 1, height_ratios=[3, 1])
+#gs = gridspec.GridSpec(2, 1, height_ratios=[3, 1])
+gs = gridspec.GridSpec(1, 1)
+
 gs.update(hspace=0.02, left=0.2, bottom=0.15)
 ax0 = plt.subplot(gs[0])
-ax1 = plt.subplot(gs[1])
+#ax1 = plt.subplot(gs[1])
 
-ax0.set_ylabel(r'$P(x)$ (flat)')
+ax0.set_ylabel(r'$C_{\ell}$')
 
-ax1.axhline(y=1, ls='dotted')
+#ax1.axhline(y=1, ls='dotted')
 # ax1.axhline(y=-1e-6, ls='dashed')
 # ax1.axhline(y=1e-6, ls='dashed')
 
-ax1.set_xlabel(r'$x$')
+ax0.set_xlabel(r'$\ell$')
 
 ax0.set_xscale('log')
-ax1.set_xscale('log')
+#ax1.set_xscale('log')
 ax0.set_yscale('log')
+ax0.set_ylim(1.e-13,1.e-7)
 
-
-ax1.set_ylabel(r'emu/real - 1')
-ax1.set_ylim(-1e-5, 1e-5)
-
+#ax1.set_ylabel(r'emu/real - 1')
+#ax1.set_ylim(-1e-5, 1e-5)
+print(np.shape(l))
+print(np.shape((Px_flatflat.T)))
 ax0.plot(l, (Px_flatflat.T), alpha=0.03, color='k')
 
 for x_id in [3, 23, 43, 64, 83, 109]:
@@ -240,9 +439,9 @@ for x_id in [3, 23, 43, 64, 83, 109]:
 
     ax0.plot(l, x_decodedGPy, alpha=1.0, ls='--', label='emu')
     ax0.plot(l, (x_test), alpha=0.9, label='real')
-    plt.legend()
+    #plt.legend()
 
-    ax1.plot(x_decodedGPy[1:] / x_test[1:] - 1)
+    #ax1.plot(x_decodedGPy[1:] / x_test[1:] - 1)
 
 
 
@@ -297,17 +496,18 @@ icov = np.linalg.inv(cov_mat)
 
 
 # np.sqrt(yerr[::5])/Cl[::5]
-ax0.errorbar(x[::], y[::], yerr= yerr_diag[::] , marker='o',
-       color='k',
-       ecolor='k',
-       markerfacecolor='g',
-       markersize = 2,
-       capsize=0,
-       linestyle='None')
+#ax0.errorbar(x[::], y[::], yerr= yerr_diag[::] , marker='o',
+#       color='k',
+#       ecolor='k',
+#       markerfacecolor='g',
+#       markersize = 2,
+#       capsize=0,
+#       linestyle='None')
 # plt.show()
 
-plt.savefig('Plots/PowerSpect_emu.pdf')
-
+plt.savefig('Plots/PowerSpect_emu_fullsky.pdf')
+print("saved figure!!")
+stop
 
 plt.figure(43)
 plt.imshow(cov_mat)

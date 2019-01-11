@@ -108,24 +108,27 @@ Px_flatflat = np.array([np.loadtxt(f) for f in filelist])
 
 Px_flatflat = Px_flatflat[: ,:, 1]
 
-
+print(np.shape(Px_flatflat))
 nan_idx = [~np.isnan(Px_flatflat).any(axis=1)]
 Px_flatflat = Px_flatflat[nan_idx]
 Px_flatlog = np.log10(Px_flatflat)
 
 
 nr, nc = Px_flatlog.shape
+print(nr,nc)
+
 y_train = ro.r.matrix(Px_flatlog, nrow=nr, ncol=nc)
 
 ro.r.assign("y_train2", y_train)
 r('dim(y_train2)')
+print(np.shape(y_train))
 
 parameter_array = np.loadtxt(paramIn)
 parameter_array = parameter_array[nan_idx]
 
 nr, nc = parameter_array.shape
 u_train = ro.r.matrix(parameter_array, nrow=nr, ncol=nc)
-
+print(nr,nc)
 ro.r.assign("u_train2", u_train)
 r('dim(u_train2)')
 

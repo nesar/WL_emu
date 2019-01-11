@@ -87,7 +87,7 @@ GPmodel = '"R_GP_model_flat' + str(nRankMax) + '.RData"'  ## Double and single q
 
 ################################# I/O #################################
 l = np.loadtxt(dirIn + 'xvals.txt')
-
+print(l)
 RcppCNPy = importr('RcppCNPy')
 # RcppCNPy.chooseCRANmirror(ind=1) # select the first mirror in the list
 
@@ -208,26 +208,30 @@ plt.rc('font', size=12)  # 18 usually
 plt.figure(999, figsize=(7, 6))
 from matplotlib import gridspec
 
-gs = gridspec.GridSpec(2, 1, height_ratios=[3, 1])
+#gs = gridspec.GridSpec(2, 1, height_ratios=[3, 1])
+# sorry, hacky changes
+gs = gridspec.GridSpec(1, 1)
 gs.update(hspace=0.02, left=0.2, bottom=0.15)
 ax0 = plt.subplot(gs[0])
-ax1 = plt.subplot(gs[1])
+#ax1 = plt.subplot(gs[1])
 
 ax0.set_ylabel(r'$P(x)$ (flat)')
 
-ax1.axhline(y=1, ls='dotted')
+#ax1.axhline(y=1, ls='dotted')
 # ax1.axhline(y=-1e-6, ls='dashed')
 # ax1.axhline(y=1e-6, ls='dashed')
 
-ax1.set_xlabel(r'$x$')
+#ax1.set_xlabel(r'$x$ (arcmin)')
+ax0.set_xlabel(r'$x$ (arcmin)')
 
 ax0.set_xscale('log')
-ax1.set_xscale('log')
+#ax1.set_xscale('log')
 ax0.set_yscale('log')
+ax0.set_xlim(1e0, 1e2)
+#ax1.set_xlim(1e0,1e2)
 
-
-ax1.set_ylabel(r'emu/real - 1')
-ax1.set_ylim(-1e-5, 1e-5)
+#ax1.set_ylabel(r'emu/real - 1')
+#ax1.set_ylim(-1e-5, 1e-5)
 
 ax0.plot(l, (Px_flatflat.T), alpha=0.03, color='k')
 
@@ -237,12 +241,12 @@ for x_id in [3, 23, 43, 64, 83, 109]:
     time1 = time.time()
     print('Time per emulation %0.2f' % (time1 - time0), ' s')
     x_test = Px_flatflat[x_id]
-
+    print(l)
     ax0.plot(l, x_decodedGPy, alpha=1.0, ls='--', label='emu')
     ax0.plot(l, (x_test), alpha=0.9, label='real')
-    plt.legend()
-
-    ax1.plot(x_decodedGPy[1:] / x_test[1:] - 1)
+    #plt.legend()
+    #print(l)
+    #ax1.plot(l[1:],x_decodedGPy[1:] / x_test[1:] - 1)
 
 
 
@@ -256,9 +260,9 @@ for x_id in [3, 23, 43, 64, 83, 109]:
 #### parameters that define the MCMC
 
 ndim = 7
-nwalkers = 100  # 200 #600  # 500
+nwalkers = 500  # 200 #600  # 500
 nrun_burn = 50  # 50 # 50  # 300
-nrun = 200  # 300  # 700
+nrun = 500  # 300  # 700
 fileID = 1
 
 ########## REAL DATA with ERRORS #############################
@@ -303,16 +307,17 @@ icov = np.linalg.inv(cov_mat)
 
 
 # np.sqrt(yerr[::5])/Cl[::5]
-ax0.errorbar(x[::], y[::], yerr= yerr_diag[::] , marker='o',
-       color='k',
-       ecolor='k',
-       markerfacecolor='g',
-       markersize = 2,
-       capsize=0,
-       linestyle='None')
+#ax0.errorbar(x[::], y[::], yerr= yerr_diag[::] , marker='o',
+#       color='k',
+#       ecolor='k',
+#       markerfacecolor='g',
+#       markersize = 2,
+#       capsize=0,
+#       linestyle='None')
 #plt.show()
+#plt.xlim([1.e-1,1.e1])
 plt.savefig('Plots/PowerSpect_emu.pdf')
-stop
+#stop
 
 plt.figure(43)
 plt.imshow(cov_mat)
