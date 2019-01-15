@@ -14,7 +14,9 @@ The following R packages are required:
 # conda install -c r rpy2
 
 
-rgl issue in Tricia's Mac
+rgl issue in Tricia's Mac  -- resolved
+
+
 
 """
 
@@ -41,7 +43,7 @@ from rpy2.robjects.packages import importr
 dirIn = "/home/nes/Desktop/AstroVAE/WL_emu/Codes/deprecated_codes/cl_outputs/"   ## Input Cl files
 paramIn = "/home/nes/Desktop/AstroVAE/WL_emu/Codes/lhc_128.txt"   ## 8 parameter file
 nRankMax = 32    ## Number of basis vectors in truncated PCA
-GPmodel = '"R_GP_model1225' + str(nRankMax) + '.RData"'  ## Double and single quotes are necessary
+GPmodel = '"R_GP_model127' + str(nRankMax) + '.RData"'  ## Double and single quotes are necessary
 
 num_holdout = 4
 ################################# I/O #################################
@@ -71,15 +73,26 @@ nan_idx = [~np.isnan(Cls).any(axis=1)]
 
 Cls = Cls[nan_idx]
 
+l = np.arange(Cls.shape[1])[1:]
+
 # Cls = np.log(Cls[:, 1::2])
 Cls = np.log10(Cls[:, 1::])
 
 
-nr, nc = Cls[num_holdout:, :].shape
-y_train = ro.r.matrix(Cls[num_holdout:, :], nrow=nr, ncol=nc)
+# np.random.seed(12)
+# rand_idx = np.random.randint(0, np.shape(Cls)[0], np.shape(Cls)[0])
 
-# nr, nc = Cls.shape
-# y_train = ro.r.matrix(Cls, nrow=nr, ncol=nc)
+# Cls = Cls[rand_idx, :]
+del_idx =  [20, 55, 60, 75]
+Cls = np.delete(Cls, del_idx, axis = 0)
+
+
+# nr, nc = Cls[num_holdout:, :].shape
+# y_train = ro.r.matrix(Cls[num_holdout:, :], nrow=nr, ncol=nc)
+
+nr, nc = Cls.shape
+y_train = ro.r.matrix(Cls, nrow=nr, ncol=nc)
+
 
 
 ro.r.assign("y_train2", y_train)
@@ -89,11 +102,16 @@ r('dim(y_train2)')
 parameter_array = np.loadtxt(paramIn)
 parameter_array = parameter_array[nan_idx]
 
-nr, nc = parameter_array[num_holdout:, :].shape
-u_train = ro.r.matrix(parameter_array[num_holdout:, :], nrow=nr, ncol=nc)
 
-# nr, nc = parameter_array.shape
-# u_train = ro.r.matrix(parameter_array, nrow=nr, ncol=nc)
+# parameter_array = parameter_array[rand_idx, :]
+parameter_array = np.delete(parameter_array, del_idx, axis = 0)
+
+
+# nr, nc = parameter_array[num_holdout:, :].shape
+# u_train = ro.r.matrix(parameter_array[num_holdout:, :], nrow=nr, ncol=nc)
+
+nr, nc = parameter_array.shape
+u_train = ro.r.matrix(parameter_array, nrow=nr, ncol=nc)
 
 ro.r.assign("u_train2", u_train)
 r('dim(u_train2)')
@@ -170,41 +188,48 @@ def GP_predict(para_array):
 
 ### PRIOR PLOT ####
 
-plt.rc('text', usetex=True)   # Slower
-plt.rc('font', size=12)  # 18 usually
+PlotPrior = False
 
-plt.figure(999, figsize=(8, 6))
-from matplotlib import gridspec
+if PlotPrior:
 
-gs = gridspec.GridSpec(1, 1)
-gs.update(hspace=0.02, left=0.2, bottom=0.15)
-ax0 = plt.subplot(gs[0])
-# ax1 = plt.subplot(gs[1])
+    plt.rc('text', usetex=True)   # Slower
+    plt.rc('font', size=12)  # 18 usually
 
-ax0.set_ylabel(r'$l(l+1)C_l$', fontsize = 15)
+    plt.figure(999, figsize=(8, 6))
+    from matplotlib import gridspec
 
-# ax1.axhline(y=0, ls='dashed')
-# ax1.axhline(y=-1e-6, ls='dashed')
-# ax1.axhline(y=1e-6, ls='dashed')
+    gs = gridspec.GridSpec(1, 1)
+    gs.update(hspace=0.02, left=0.2, bottom=0.15)
+    ax0 = plt.subplot(gs[0])
+    # ax1 = plt.subplot(gs[1])
 
-ax0.set_xlabel(r'$l$', fontsize = 15)
+    ax0.set_ylabel(r'$C_l$', fontsize = 15)
 
-ax0.set_xscale('log', base = 10)
-# ax1.set_xscale('log')
+    # ax1.axhline(y=0, ls='dashed')
+    # ax1.axhline(y=-1e-6, ls='dashed')
+    # ax1.axhline(y=1e-6, ls='dashed')
 
-# ax1.set_ylabel(r'emu/real - 1')
-# ax1.set_ylim(-1e-5, 1e-5)
+    ax0.set_xlabel(r'$l$', fontsize = 15)
+
+    ax0.set_xscale('log', base = 10)
+    # ax1.set_xscale('log')
+
+    # ax1.set_ylabel(r'emu/real - 1')
+    ax1.set_ylim(-2e-4, 2e-4)
 
 
-ax0.plot(Cls.T, alpha = 0.3)
+    ax0.plot(l, Cls.T, alpha = 0.3)
 
 
 
-plt.savefig('Plots/ClEmuPrior.png', figsize= (24,18), bbox_inches="tight", dpi = 900)
-plt.show()
+    plt.savefig('Plots/ClEmuPrior.png', figsize= (24,18), bbox_inches="tight", dpi = 900)
+    plt.show()
 
 
 #### POSTERIOR DRAWS ######
+
+# plt.rcParams['axes.color_cycle'] = [ 'navy', 'forestgreen', 'darkred', 'sienna']
+
 
 plt.rc('text', usetex=True)   # Slower
 plt.rc('font', size=12)  # 18 usually
@@ -217,7 +242,7 @@ gs.update(hspace=0.02, left=0.2, bottom=0.15)
 ax0 = plt.subplot(gs[0])
 ax1 = plt.subplot(gs[1])
 
-ax0.set_ylabel(r'$l(l+1)C_l$', fontsize = 15)
+ax0.set_ylabel(r'$C_l$', fontsize = 15)
 
 ax1.axhline(y=0, ls='dashed')
 # ax1.axhline(y=-1e-6, ls='dashed')
@@ -231,27 +256,42 @@ ax0.set_xscale('log', base = 10)
 ax1.set_xscale('log', base = 10)
 
 ax1.set_ylabel(r'emu/real - 1')
-ax1.set_ylim(-1e-2, 1e-2)
+ax1.set_ylim(-5e-4, 5e-4)
 
 
-ax0.plot(10**Cls.T, alpha = 0.03, color = 'k')
 
-# for x_id in [23, 83, 54, 83, 111]:
+ax0.plot(l, 10**Cls.T, alpha = 0.03, color = 'k')
+
+
+color_id = 0
+for x_id in del_idx:
+    color_id = color_id + 1
 #
-for x_id in range(0, num_holdout):
+# for x_id in range(0, num_holdout):
 
     time0 = time.time()
     x_decodedGPy = GP_predict(parameter_array[x_id])  ## input parameters
     time1 = time.time()
     print('Time per emulation %0.2f'% (time1 - time0), ' s')
-    x_test = Cls[x_id]
 
-    ax0.plot(10**x_decodedGPy, alpha=1.0, ls='--', label='emu')
-    ax0.plot(10**x_test, alpha=0.9, label='real')
+    ax0.plot(l, 10**x_decodedGPy, alpha=1.0, ls='--', label='emu', color=plt.cm.Set1(color_id))
+
+    x_test = Cls[x_id]
+    ax0.plot(l, 10**x_test, alpha=0.9, label='real', color=plt.cm.Set1(color_id))
+
+    ax1.plot( l,  (10**x_decodedGPy)/(10**x_test) - 1, color=plt.cm.Set1(color_id))
+
     plt.legend()
 
-    ax1.plot(  (10**x_decodedGPy[1:])/(10**x_test[1:]) - 1)
+
+
+
     # ax1.plot(  (x_decodedGPy[1:])/(x_test[1:]) - 1)
+
+ax0.set_xlim(l[0], l[-1])
+ax1.set_xlim(l[0], l[-1])
+
+ax0.set_xticklabels([])
 
 
 plt.savefig('Plots/ClEmu.png', figsize= (28,24), bbox_inches="tight", dpi = 900)
@@ -263,61 +303,65 @@ plt.show()
 #### Plot PCA bases and weights ####
 
 
+PlotPCA = False
 
-PCAbases = r('svd_decomp2$v[,1:nrankmax]')
-
-PCAweights = r('svd_weights2')
-
+if PlotPCA:
 
 
-plt.figure(900, figsize=(8,6))
+    PCAbases = r('svd_decomp2$v[,1:nrankmax]')
 
-plt.title('Truncated PCA weights')
-plt.xlabel('PCA weight [0]',fontsize = 18)
-plt.ylabel('PCA weight [1]',fontsize = 18)
-CS = plt.scatter(PCAweights[:, 0], PCAweights[:, 1], c = parameter_array[num_holdout:, 2], s = 200, alpha=0.8)
-cbar = plt.colorbar(CS)
-cbar.ax.set_ylabel(r'$\sigma_8$', fontsize = 18)
-plt.tight_layout()
-plt.savefig('Plots/SVD_TruncatedWeights8.png', figsize= (28,24), bbox_inches="tight", dpi = 900)
+    PCAweights = r('svd_weights2')
 
 
 
-plt.figure(901, figsize=(8,6))
+    plt.figure(900, figsize=(8,6))
 
-plt.title('Truncated PCA weights')
-plt.xlabel('PCA weight [0]',fontsize = 18)
-plt.ylabel('PCA weight [1]',fontsize = 18)
-CS = plt.scatter(PCAweights[:, 0], PCAweights[:, 1], c = parameter_array[num_holdout:, 5], s = 200, alpha=0.8)
-cbar = plt.colorbar(CS)
-cbar.ax.set_ylabel(r'$z_m$', fontsize = 18)
-plt.tight_layout()
-plt.savefig('Plots/SVD_TruncatedWeightZm.png', figsize= (28,24), bbox_inches="tight", dpi = 900)
-
-
+    plt.title('Truncated PCA weights')
+    plt.xlabel('PCA weight [0]',fontsize = 18)
+    plt.ylabel('PCA weight [1]',fontsize = 18)
+    CS = plt.scatter(PCAweights[:, 0], PCAweights[:, 1], c = parameter_array[num_holdout:, 2], s = 200, alpha=0.8)
+    cbar = plt.colorbar(CS)
+    cbar.ax.set_ylabel(r'$\sigma_8$', fontsize = 18)
+    plt.tight_layout()
+    plt.savefig('Plots/SVD_TruncatedWeights8.png', figsize= (28,24), bbox_inches="tight", dpi = 900)
 
 
 
-plt.figure(902, figsize=(7,3))
+    plt.figure(901, figsize=(8,6))
 
-# plt.xlabel('PCA weight [0]',fontsize = 18)
-# plt.ylabel('PCA weight [1]',fontsize = 18)
+    plt.title('Truncated PCA weights')
+    plt.xlabel('PCA weight [0]',fontsize = 18)
+    plt.ylabel('PCA weight [1]',fontsize = 18)
+    CS = plt.scatter(PCAweights[:, 0], PCAweights[:, 1], c = parameter_array[num_holdout:, 5], s = 200, alpha=0.8)
+    cbar = plt.colorbar(CS)
+    cbar.ax.set_ylabel(r'$z_m$', fontsize = 18)
+    plt.tight_layout()
+    plt.savefig('Plots/SVD_TruncatedWeightZm.png', figsize= (28,24), bbox_inches="tight", dpi = 900)
 
 
-n_lines = 16
-# fig, ax = plt.subplots()
-plt.title('Truncated PCA bases')
 
-cmap = plt.cm.get_cmap('jet', n_lines)
 
-for i in range(n_lines):
 
-    fig = plt.plot(PCAbases[:150,i], lw = 1.0, alpha = 0.8)
+    plt.figure(902, figsize=(7,3))
 
-# cbar = plt.colorbar(fig)
-# cbar.ax.set_ylabel(r'$z_m$', fontsize = 18)
-plt.tight_layout()
-plt.savefig('Plots/Bases.png', figsize= (28,24), bbox_inches="tight", dpi = 900)
+    # plt.xlabel('PCA weight [0]',fontsize = 18)
+    # plt.ylabel('PCA weight [1]',fontsize = 18)
+
+
+    n_lines = 16
+    # fig, ax = plt.subplots()
+    plt.title('Truncated PCA bases')
+
+    cmap = plt.cm.get_cmap('jet', n_lines)
+
+    for i in range(n_lines):
+
+        fig = plt.plot(PCAbases[:150,i], lw = 1.0, alpha = 0.8)
+
+    # cbar = plt.colorbar(fig)
+    # cbar.ax.set_ylabel(r'$z_m$', fontsize = 18)
+    plt.tight_layout()
+    plt.savefig('Plots/Bases.png', figsize= (28,24), bbox_inches="tight", dpi = 900)
 
 
 

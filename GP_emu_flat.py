@@ -14,6 +14,8 @@ The following R packages are required:
 # conda install -c r rpy2
 
 
+Real Space
+
 """
 
 ##### Generic packages ###############
@@ -37,10 +39,10 @@ from rpy2.robjects.packages import importr
 
 dirIn = "/home/nes/Desktop/AstroVAE/WL_emu/Codes/deprecated_codes/cl_outputs/"  ## Input Cl files
 paramIn = "/home/nes/Desktop/AstroVAE/WL_emu/Codes/lhc_128.txt"  ## 8 parameter file
-nRankMax = 32  ## Number of basis vectors in truncated PCA
-GPmodel = '"RModels/R_GP_model_flat21' + str(nRankMax) + '.RData"'  ## Double and single quotes
+nRankMax = 4 ## Number of basis vectors in truncated PCA
+GPmodel = '"RModels/R_GP_model_flat24' + str(nRankMax) + '.RData"'  ## Double and single quotes
 # are necessary
-num_holdout = 4
+# num_holdout = 4
 ################################# I/O #################################
 RcppCNPy = importr('RcppCNPy')
 # RcppCNPy.chooseCRANmirror(ind=1) # select the first mirror in the list
@@ -55,6 +57,8 @@ filelist = sorted(filelist, key=lambda x: int(os.path.splitext(x)[0][74:]))
 
 Px_flat = np.array([np.loadtxt(f) for f in filelist])
 
+
+xvals = np.loadtxt(dirIn + 'xvals.txt')
 ### Px_flatnan = np.unique(np.array(np.argwhere(np.isnan(Px_flat)) )[:,0])
 
 Px_flat = Px_flat[: ,:, 1]
@@ -66,11 +70,22 @@ Px_flat = Px_flat[nan_idx]
 Px_flat = np.log10(Px_flat[:, ::])
 
 
-# nr, nc = Px_flat[:,:].shape
-# y_train = ro.r.matrix(Px_flat[:,:], nrow=nr, ncol=nc)
+# np.random.seed(12)
+# rand_idx = np.random.randint(0, np.shape(Px_flat)[0], np.shape(Px_flat)[0])
 
-nr, nc = Px_flat[num_holdout:, :].shape
-y_train = ro.r.matrix(Px_flat[num_holdout:, :], nrow=nr, ncol=nc)
+# Px_flat = Px_flat[rand_idx, :]
+
+del_idx =  [15, 25, 80, 110]
+Px_flat = np.delete(Px_flat, del_idx, axis = 0)
+
+
+
+
+nr, nc = Px_flat[:,:].shape
+y_train = ro.r.matrix(Px_flat[:,:], nrow=nr, ncol=nc)
+
+# nr, nc = Px_flat[num_holdout:, :].shape
+# y_train = ro.r.matrix(Px_flat[num_holdout:, :], nrow=nr, ncol=nc)
 
 
 
@@ -80,11 +95,17 @@ r('dim(y_train2)')
 parameter_array = np.loadtxt(paramIn)
 parameter_array = parameter_array[nan_idx]
 
-# nr, nc = parameter_array[:,:].shape
-# u_train = ro.r.matrix(parameter_array[:,:], nrow=nr, ncol=nc)
 
-nr, nc = parameter_array[num_holdout:, :].shape
-u_train = ro.r.matrix(parameter_array[num_holdout:, :], nrow=nr, ncol=nc)
+parameter_array = np.delete(parameter_array, del_idx, axis = 0)
+
+
+nr, nc = parameter_array[:,:].shape
+u_train = ro.r.matrix(parameter_array[:,:], nrow=nr, ncol=nc)
+
+# parameter_array = parameter_array[rand_idx, :]
+
+# nr, nc = parameter_array[num_holdout:, :].shape
+# u_train = ro.r.matrix(parameter_array[num_holdout:, :], nrow=nr, ncol=nc)
 
 ro.r.assign("u_train2", u_train)
 r('dim(u_train2)')
@@ -160,37 +181,60 @@ def GP_predict(para_array):
 ##################################### TESTING ##################################
 
 
-plt.rc('text', usetex=True)  # Slower
-plt.rc('font', size=12)  # 18 usually
+PlotPrior = True
 
-plt.figure(999, figsize=(7, 6))
-from matplotlib import gridspec
+if PlotPrior:
 
-gs = gridspec.GridSpec(2, 1, height_ratios=[3, 1])
-gs.update(hspace=0.02, left=0.2, bottom=0.15)
-ax0 = plt.subplot(gs[0])
-ax1 = plt.subplot(gs[1])
-
-ax0.set_ylabel(r'$P(x)$ (flat)')
-
-# ax1.axhline(y=-1e-6, ls='dashed')
-# ax1.axhline(y=1e-6, ls='dashed')
-
-ax1.set_xlabel(r'$x$')
-ax1.axhline(y=0, ls='dashed')
+    plt.rcParams['axes.color_cycle'] = [ 'navy', 'forestgreen', 'darkred', 'gold']
 
 
-ax0.set_yscale('log', base = 10)
-ax0.set_xscale('log', base = 10)
-ax1.set_xscale('log', base = 10)
+    plt.rc('text', usetex=True)  # Slower
+    plt.rc('font', size=12)  # 18 usually
 
-ax1.set_ylabel(r'emu/real - 1')
-ax1.set_ylim(-5e-3, 5e-3)
+    plt.figure(999, figsize=(7, 6))
+    from matplotlib import gridspec
 
-ax0.plot(10**Px_flat.T, alpha=0.03, color='k')
+    gs = gridspec.GridSpec(2, 1, height_ratios=[3, 1])
+    gs.update(hspace=0.02, left=0.2, bottom=0.15)
+    ax0 = plt.subplot(gs[0])
+    ax1 = plt.subplot(gs[1])
+
+    ax0.set_ylabel(r'$P(x)$',  fontsize = 15)
+
+    # ax1.axhline(y=-1e-6, ls='dashed')
+    # ax1.axhline(y=1e-6, ls='dashed')
+
+    ax1.set_xlabel(r'$x$(arcmin)',  fontsize = 15)
+    ax1.axhline(y=0, ls='dashed')
+
+
+    ax0.set_yscale('log', base = 10)
+    ax0.set_xscale('log', base = 10)
+    ax1.set_xscale('log', base = 10)
+
+    ax1.set_ylabel(r'emu/real - 1')
+    # ax1.set_ylim(-5e-3, 5e-3)
+
+    ax0.plot(xvals, 10**Px_flat.T, alpha=0.03, color='k')
+
+
+# ax1.set_ylim(-5e-4, 5e-4)
+
+
+ax0.set_xlim(xvals[0], xvals[-1])
+ax1.set_xlim(xvals[0], xvals[-1])
+
+ax0.set_xticklabels([])
+
+
+color_id = 0
+for x_id in del_idx:
+    color_id = color_id + 1
+#
+
 
 # for x_id in [13, 24, 64, 83, 109]:
-for x_id in range(0, num_holdout):
+# for x_id in range(0, num_holdout):
 
     time0 = time.time()
     x_decodedGPy = GP_predict(parameter_array[x_id])  ## input parameters
@@ -198,11 +242,11 @@ for x_id in range(0, num_holdout):
     print('Time per emulation %0.2f' % (time1 - time0), ' s')
     x_test = Px_flat[x_id]
 
-    ax0.plot(10**x_decodedGPy, alpha=1.0, ls='--', label='emu')
-    ax0.plot(10**x_test, alpha=0.9, label='real')
+    ax0.plot(xvals, 10**x_decodedGPy, alpha=1.0, ls='--', label='emu', color=plt.cm.Set1(color_id))
+    ax0.plot(xvals, 10**x_test, alpha=0.9, label='real', color=plt.cm.Set1(color_id))
     plt.legend()
 
-    ax1.plot( (10**x_decodedGPy[1:]) / (10**x_test[1:])  - 1)
+    ax1.plot( xvals, (10**x_decodedGPy[:]) / (10**x_test[:])  - 1, color=plt.cm.Set1(color_id))
 
 plt.show()
 
