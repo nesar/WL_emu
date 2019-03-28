@@ -34,7 +34,7 @@ z_range = [0, 0.3, 0.5, 0.9 ,1.0]
 
 z_range = [0.0, ]
 
-fileList = glob.glob('../../Pk_data/CosmicEmu-master/P_tot/EMU*.txt')
+fileList = glob.glob('../../../Pk_data/CosmicEmu-master/P_tot/EMU*.txt')
 
 def plot_latin(fileIn):
     lhd = np.loadtxt(fileIn)
@@ -66,7 +66,7 @@ def plot_latin(fileIn):
     plt.show()
 
 
-para5 = np.loadtxt('../../Pk_data/CosmicEmu-master/P_cb/xstar_halofit.dat')#[:totalFiles]
+para5 = np.loadtxt('../../../Pk_data/CosmicEmu-master/P_cb/xstar_halofit.dat')#[:totalFiles]
 
 
 
@@ -97,7 +97,8 @@ for i in range(totalFiles):
     pars.set_cosmology(H0=100*para5[i, 3], ombh2=para5[i, 1], omch2=para5[i, 0] - para5[i, 1], mnu=0.0, omk=0, tau=0.0)
 				
 
-    pars.set_dark_energy(w=-1.0, sound_speed=1.0, dark_energy_model='fluid')
+    pars.set_dark_energy(w=-1.0)
+    #, sound_speed=1.0, dark_energy_model='fluid')
 
     # pars.set_dark_energy()  # re-set defaults
 
@@ -133,9 +134,9 @@ for i in range(totalFiles):
     #r = 1
     # #---------------------------------------------------
 
-    camb.set_halofit_version('takahashi')
+    #camb.set_halofit_version('takahashi')
     kh_nonlin_takahashi, _, pk_takahashi = results.get_nonlinear_matter_power_spectrum(params=pars)
-    camb.set_halofit_version('mead')
+    #camb.set_halofit_version('mead')
     kh_nonlin_mead, _, pk_mead = results.get_nonlinear_matter_power_spectrum(params=pars)
 
 
@@ -235,7 +236,7 @@ def get_interpolated():
     pars.set_cosmology(H0=100*para5[i, 3], ombh2=para5[i, 1], omch2=para5[i, 0] - para5[i, 1], mnu=0.0, omk=0, tau=0.0)
 				
 
-    pars.set_dark_energy(w=-1.0, sound_speed=1.0, dark_energy_model='fluid')
+    #pars.set_dark_energy(w=-1.0, sound_speed=1.0, dark_energy_model='fluid')
 
     # pars.set_dark_energy()  # re-set defaults
 
@@ -276,24 +277,26 @@ def get_interpolated():
     #zplot = [0, 0.5, 1, 4 ,20]
     zplot = [0.0]
     #zplot = [0, 0.3, 0.5, 0.9 ,1.0]
-    for z in zplot:
+
+'''
+for z in zplot:
         ax0.loglog(k, r*PK.P(z,k))
-        #plt.xlim([1e-4,kmax])
-        #plt.xlabel('k Mpc')
-        #plt.ylabel('$P_\Psi\, Mpc^{-3}$')
+#plt.xlim([1e-4,kmax])
+#plt.xlabel('k Mpc')
+#plt.ylabel('$P_\Psi\, Mpc^{-3}$')
         plt.legend(['z=%s'%z for z in zplot]);
-        #plt.show()
+#plt.show()
         ax1.plot(k, kPk[:,1]/(r*PK.P(z,k))
         ax1.set_xscale('log')
         ax0.set_xlim(kPk[0,0], kPk[-1,0])
 
 
-
+'''
 
 
 #hmf_halofit()
 #takahasi()
-get_interpolated()
+#get_interpolated()
 
 
 plt.show()

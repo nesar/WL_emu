@@ -43,7 +43,7 @@ from rpy2.robjects.packages import importr
 dirIn = "/home/nes/Desktop/AstroVAE/WL_emu/Codes/deprecated_codes/cl_outputs/"   ## Input Cl files
 paramIn = "/home/nes/Desktop/AstroVAE/WL_emu/Codes/lhc_128.txt"   ## 8 parameter file
 nRankMax = 32    ## Number of basis vectors in truncated PCA
-GPmodel = '"R_GP_model127' + str(nRankMax) + '.RData"'  ## Double and single quotes are necessary
+GPmodel = '"R_GP_model123a2' + str(nRankMax) + '.RData"'  ## Double and single quotes are necessary
 
 num_holdout = 4
 ################################# I/O #################################
@@ -130,6 +130,30 @@ def PCA_decomp():
     r('svd_decomp2 <- svd(y_train2)')
     r('svd_weights2 <- svd_decomp2$u[, 1:nrankmax] %*% diag(svd_decomp2$d[1:nrankmax])')
 
+
+# set up pca compression
+from sklearn.decomposition import PCA
+
+def PCA_compress(x, nComp):
+    # x is in shape (nCosmology, nbins)
+    pca_model = PCA(n_components=nComp)
+    principalComponents = pca_model.fit_transform(x)
+    pca_bases = pca_model.components_
+
+    print("original shape:   ", x.shape)
+    print("transformed shape:", principalComponents.shape)
+    print("bases shape:", pca_bases.shape)
+
+    import pickle
+    pickle.dump(pca_model, open('PCA_model', 'wb'))
+
+
+    return pca_model, np.array(principalComponents), np.array(pca_bases)
+
+
+# mean_peak_counts = np.mean(data_sim, axis=1)
+# mean_peak_counts[0].shape
+
 ######################## GP FITTING ################################
 
 ## Build GP models
@@ -158,9 +182,45 @@ def GP_fit():
 
     r('''''')
 
+#
+# def GP_fit_pca():
+#     GPareto = importr('GPareto')
+#
+#     ro.r.assign("models_svd2_pca", pca_weights)
+#     r('dim(models_svd2_pca)')
+#
+#     ro.r('''
+#
+#     GPmodel <- gsub("to", "",''' + GPmodel + ''')
+#
+#     ''')
+#
+#     r('''if(file.exists(GPmodel)){
+#             load(GPmodel)
+#         }else{
+#             models_svd2_pca <- list()
+#             for (i in 1: nrankmax){
+#                 mod_s <- km(~., design = u_train2, response = svd_weights2[, i])
+#                 models_svd2_pca <- c(models_svd2_pca, list(mod_s))
+#             }
+#             save(models_svd2_pca, file = GPmodel)
+#
+#          }''')
+#
+#     r('''''')
 
-PCA_decomp()
-GP_fit()
+
+
+import GPy
+
+def GPy_fit(parameter_array, weights, fname =  'GPy_model'):
+    kern = GPy.kern.Matern52(5, 0.1)
+    m1 = GPy.models.GPRegression(parameter_array, weights, kernel=kern)
+    m1.Gaussian_noise.variance.constrain_fixed(1e-16)
+    m1.optimize(messages=True)
+    m1.save_model(fname, compress=True, save_data=True)
+
+
 
 ######################## GP PREDICTION ###############################
 
@@ -182,6 +242,102 @@ def GP_predict(para_array):
     y_recon = np.array(r('reconst_s2'))
 
     return y_recon[0]
+
+
+#
+# def GP_predict_pca(para_array):
+#     ### Input: para_array -- 1D array [rho, sigma, tau, sspt]
+#     ### Output P(x) (size= 100)
+#
+#     para_array = np.expand_dims(para_array, axis=0)
+#
+#     nr, nc = para_array.shape
+#     Br = ro.r.matrix(para_array, nrow=nr, ncol=nc)
+#
+#     ro.r.assign("Br", Br)
+#
+#     r('wtestsvd2 <- predict_kms(models_svd2_pca, newdata = Br , type = "UK")')
+#     r('reconst_s2 <- t(wtestsvd2$mean) %*% t(svd_decomp2$v[,1:nrankmax])')
+#
+#     y_recon = np.array(r('reconst_s2'))
+#
+#     return y_recon[0]
+
+
+def GPy_predict(para_array, GPmodel = 'GPy_model', PCAmodel = 'PCA_model'):
+
+    m1 = GPy.models.GPRegression.load_model(GPmodel + '.zip')
+
+    m1p = m1.predict(para_array)  # [0] is the mean and [1] the predictive
+    W_predArray = m1p[0]
+    W_varArray = m1p[1]
+
+    # return W_predArray, W_varArray
+
+    # if np.shape(para_array) == 1: np.expand_dims( parameter_array[del_idx][0], axis=0 )
+    ### add this later
+
+
+
+    import pickle
+
+    pca_model = pickle.load(open(PCAmodel, 'rb'))
+
+    # x_decoded = pca_model.inverse_transform(W_pred_mean[0])
+    x_decoded = pca_model.inverse_transform(W_predArray)
+
+    return x_decoded[0]
+
+
+# def GPy_predict0(para_array, GPmodel='GPy_model'):
+#     m1 = GPy.models.GPRegression.load_model(GPmodel + '.zip')
+#
+#     m1p = m1.predict(para_array)  # [0] is the mean and [1] the predictive
+#     W_predArray = m1p[0]
+#     W_varArray = m1p[1]
+#
+#     return W_predArray, W_varArray
+
+
+
+
+################################################################################
+
+PCA_decomp()
+GP_fit()
+
+
+# https://shankarmsy.github.io/posts/pca-sklearn.html
+# pca_model, pca_weights, pca_bases = PCA_compress( np.array(y_train), nComp=nRankMax)
+
+
+
+# svd_bases = r('svd_decomp2$v[,1:nrankmax]').T
+# svd_weights  = r('svd_weights2')
+
+
+# GP_fit_pca()
+# GPy_fit(parameter_array, pca_weights)
+
+
+# W_pred_mean, W_pred_var  = GPy_predict0( np.expand_dims( parameter_array[del_idx][0], axis=0 ))
+#
+# x_decoded = pca_model.inverse_transform(W_pred_mean[0])
+
+
+
+
+
+# plt.plot(pca_model.explained_variance_ratio_)
+
+x_decoded2 = GPy_predict(np.expand_dims( parameter_array[del_idx][0], axis=0 ))
+
+
+plt.figure(132)
+
+plt.loglog(l, 10**x_decoded2, '--')
+# plt.loglog(l, 10**x_decoded)
+
 
 
 ##################################### TESTING ##################################
@@ -276,10 +432,22 @@ for x_id in del_idx:
 
     ax0.plot(l, 10**x_decodedGPy, alpha=1.0, ls='--', label='emu', color=plt.cm.Set1(color_id))
 
+
+    time0 = time.time()
+    x_decoded_new = GPy_predict(np.expand_dims(parameter_array[x_id], axis=0))
+
+    time1 = time.time()
+    print('Time per emulation %0.2f'% (time1 - time0), ' s')
+
+    ax0.plot(l, 10**x_decoded_new, alpha=1.0, ls='--', label='emu', color=plt.cm.Set1(color_id))
+
+
     x_test = Cls[x_id]
     ax0.plot(l, 10**x_test, alpha=0.9, label='real', color=plt.cm.Set1(color_id))
 
     ax1.plot( l,  (10**x_decodedGPy)/(10**x_test) - 1, color=plt.cm.Set1(color_id))
+    ax1.plot( l,  (10**x_decoded_new)/(10**x_test) - 1, ls='--', color=plt.cm.Set1(color_id))
+
 
     plt.legend()
 

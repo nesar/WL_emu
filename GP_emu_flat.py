@@ -40,7 +40,7 @@ from rpy2.robjects.packages import importr
 dirIn = "/home/nes/Desktop/AstroVAE/WL_emu/Codes/deprecated_codes/cl_outputs/"  ## Input Cl files
 paramIn = "/home/nes/Desktop/AstroVAE/WL_emu/Codes/lhc_128.txt"  ## 8 parameter file
 nRankMax = 4 ## Number of basis vectors in truncated PCA
-GPmodel = '"RModels/R_GP_model_flat24' + str(nRankMax) + '.RData"'  ## Double and single quotes
+GPmodel = '"RModels/R_GP_model_flat240' + str(nRankMax) + '.RData"'  ## Double and single quotes
 # are necessary
 # num_holdout = 4
 ################################# I/O #################################
@@ -121,6 +121,7 @@ def PCA_decomp():
     r('svd(y_train2)')
     r('svd_decomp2 <- svd(y_train2)')
     r('svd_weights2 <- svd_decomp2$u[, 1:nrankmax] %*% diag(svd_decomp2$d[1:nrankmax])')
+    r('save(svd_decomp2, file="svd.rda")')
 
 
 ######################## GP FITTING ################################
@@ -163,6 +164,25 @@ def GP_predict(para_array):
     ### Input: para_array -- 1D array [rho, sigma, tau, sspt]
     ### Output P(x) (size= 100)
 
+
+
+    #########################  WE SHOULD BE ABLE TO USE JUST THE MODEL AND BASES ############
+    r('svd_decomp3 <- load("svd.rda")')  ### loading svd bases
+
+    ro.r('''
+
+    GPmodel <- gsub("to", "",''' + GPmodel + ''')
+
+    ''')
+
+    r('''if(file.exists(GPmodel)){
+            load(GPmodel)
+            save(models_svd3, file = GPmodel)
+            }''')
+    r('''''')
+
+    #########################################################################################
+
     para_array = np.expand_dims(para_array, axis=0)
 
     nr, nc = para_array.shape
@@ -170,8 +190,8 @@ def GP_predict(para_array):
 
     ro.r.assign("Br", Br)
 
-    r('wtestsvd2 <- predict_kms(models_svd2, newdata = Br , type = "UK")')
-    r('reconst_s2 <- t(wtestsvd2$mean) %*% t(svd_decomp2$v[,1:nrankmax])')
+    r('wtestsvd2 <- predict_kms(models_svd2, newdata = Br , type = "UK")') # change to models_svd3 when resolved
+    r('reconst_s2 <- t(wtestsvd2$mean) %*% t(svd_decomp3$v[,1:nrankmax])')
 
     y_recon = np.array(r('reconst_s2'))
 
