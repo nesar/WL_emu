@@ -58,22 +58,6 @@ parameter_array = np.delete(parameter_array, del_idx, axis=0)
 from sklearn.decomposition import PCA
 
 
-def PCA_compress(x, nComp):
-    # x is in shape (nCosmology, nbins)
-    pca_model = PCA(n_components=nComp)
-    principalComponents = pca_model.fit_transform(x)
-    pca_bases = pca_model.components_
-
-    print("original shape:   ", x.shape)
-    print("transformed shape:", principalComponents.shape)
-    print("bases shape:", pca_bases.shape)
-
-    import pickle
-    pickle.dump(pca_model, open('PCA_model', 'wb'))
-
-    return pca_model, np.array(principalComponents), np.array(pca_bases)
-
-
 
 ######################## GP FITTING ################################
 
@@ -96,7 +80,7 @@ def GPy_predict(para_array, GPmodel='GPy_model'):
 def Emu(para_array, PCAmodel):
     pca_model = pickle.load(open(PCAmodel, 'rb'))
 
-    W_predArray, _ = GPy_predict(para_array, 'GPy_model', )
+    W_predArray, _ = GPy_predict(para_array, 'GPy_model')
     x_decoded = pca_model.inverse_transform(W_predArray)
 
     return x_decoded[0]
@@ -105,7 +89,7 @@ def Emu(para_array, PCAmodel):
 ################################################################################
 
 
-x_decoded2 = GPy_predict(np.expand_dims(parameter_array[del_idx][0], axis=0))
+x_decoded2 = Emu(np.expand_dims(parameter_array[del_idx][0], axis=0), PCAmodel='PCA_model')
 
 plt.figure(132)
 
@@ -190,12 +174,10 @@ for x_id in del_idx:
     # time0 = time.time()
     # x_decodedGPy = GP_predict(parameter_array[x_id])  ## input parameters
     # time1 = time.time()
-    print('Time per emulation %0.2f' % (time1 - time0), ' s')
-
     # ax0.plot(l, 10 ** x_decodedGPy, alpha=1.0, ls='--', label='emu', color=plt.cm.Set1(color_id))
 
     time0 = time.time()
-    x_decoded_new = GPy_predict(np.expand_dims(parameter_array[x_id], axis=0))
+    x_decoded_new = Emu(np.expand_dims(parameter_array[x_id], axis=0), PCAmodel='PCA_model')
 
     time1 = time.time()
     print('Time per emulation %0.2f' % (time1 - time0), ' s')
@@ -205,7 +187,6 @@ for x_id in del_idx:
     x_test = Cls[x_id]
     ax0.plot(l, 10 ** x_test, alpha=0.9, label='real', color=plt.cm.Set1(color_id))
 
-    # ax1.plot(l, (10 ** x_decodedGPy) / (10 ** x_test) - 1, color=plt.cm.Set1(color_id))
     ax1.plot(l, (10 ** x_decoded_new) / (10 ** x_test) - 1, ls='--', color=plt.cm.Set1(color_id))
 
     plt.legend()
@@ -220,63 +201,11 @@ ax1.set_xlim(l[0], l[-1])
 
 ax0.set_xticklabels([])
 
-plt.savefig('Plots/ClEmu.png', figsize=(28, 24), bbox_inches="tight", dpi=900)
+plt.savefig('Plots/ClEmuGPy.png', figsize=(28, 24), bbox_inches="tight", dpi=900)
 plt.show()
 
 #### Plot PCA bases and weights ####
 
-
-PlotPCA = False
-
-if PlotPCA:
-
-    PCAbases = r('svd_decomp2$v[,1:nrankmax]')
-
-    PCAweights = r('svd_weights2')
-
-    plt.figure(900, figsize=(8, 6))
-
-    plt.title('Truncated PCA weights')
-    plt.xlabel('PCA weight [0]', fontsize=18)
-    plt.ylabel('PCA weight [1]', fontsize=18)
-    CS = plt.scatter(PCAweights[:, 0], PCAweights[:, 1], c=parameter_array[num_holdout:, 2], s=200,
-                     alpha=0.8)
-    cbar = plt.colorbar(CS)
-    cbar.ax.set_ylabel(r'$\sigma_8$', fontsize=18)
-    plt.tight_layout()
-    plt.savefig('Plots/SVD_TruncatedWeights8.png', figsize=(28, 24), bbox_inches="tight", dpi=900)
-
-    plt.figure(901, figsize=(8, 6))
-
-    plt.title('Truncated PCA weights')
-    plt.xlabel('PCA weight [0]', fontsize=18)
-    plt.ylabel('PCA weight [1]', fontsize=18)
-    CS = plt.scatter(PCAweights[:, 0], PCAweights[:, 1], c=parameter_array[num_holdout:, 5], s=200,
-                     alpha=0.8)
-    cbar = plt.colorbar(CS)
-    cbar.ax.set_ylabel(r'$z_m$', fontsize=18)
-    plt.tight_layout()
-    plt.savefig('Plots/SVD_TruncatedWeightZm.png', figsize=(28, 24), bbox_inches="tight", dpi=900)
-
-    plt.figure(902, figsize=(7, 3))
-
-    # plt.xlabel('PCA weight [0]',fontsize = 18)
-    # plt.ylabel('PCA weight [1]',fontsize = 18)
-
-
-    n_lines = 16
-    # fig, ax = plt.subplots()
-    plt.title('Truncated PCA bases')
-
-    cmap = plt.cm.get_cmap('jet', n_lines)
-
-    for i in range(n_lines):
-        fig = plt.plot(PCAbases[:150, i], lw=1.0, alpha=0.8)
-
-    # cbar = plt.colorbar(fig)
-    # cbar.ax.set_ylabel(r'$z_m$', fontsize = 18)
-    plt.tight_layout()
-    plt.savefig('Plots/Bases.png', figsize=(28, 24), bbox_inches="tight", dpi=900)
 
 
 ######### TEMPLATE FOR MCMC LIKELIHOOD FUNCTION #######################
@@ -287,7 +216,7 @@ def lnlike(theta, x, y, yerr):
 
     new_params = np.array([p1, p2, p3, p4, p5])
 
-    model = GP_predict(new_params)
+    model = GPy_predict(new_params)
     # return -0.5 * (np.sum(((y - model) / yerr) ** 2.))
     return -0.5 * (np.sum(((y - model) / yerr) ** 2.))
 

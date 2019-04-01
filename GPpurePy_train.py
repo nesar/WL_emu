@@ -90,7 +90,7 @@ import GPy
 
 
 def GPy_fit(parameter_array, weights, fname='GPy_model'):
-    kern = GPy.kern.Matern52(5, 0.1)
+    kern = GPy.kern.Matern52( np.shape(parameter_array)[1], 0.1)
     m1 = GPy.models.GPRegression(parameter_array, weights, kernel=kern)
     m1.Gaussian_noise.variance.constrain_fixed(1e-16)
     m1.optimize(messages=True)
@@ -112,10 +112,10 @@ def GPy_predict(para_array, GPmodel='GPy_model'):
 
 
 
-def Emu(para_array, PCAmodel):
+def Emu(para_array, PCAmodel, GPmodel):
     pca_model = pickle.load(open(PCAmodel, 'rb'))
 
-    W_predArray, _ = GPy_predict(para_array, 'GPy_model', )
+    W_predArray, _ = GPy_predict(para_array, GPmodel)
     x_decoded = pca_model.inverse_transform(W_predArray)
 
     return x_decoded[0]
@@ -125,10 +125,10 @@ def Emu(para_array, PCAmodel):
 
 
 # plt.plot(pca_model.explained_variance_ratio_)
-pca_model, pca_weights, pca_bases = PCA_compress( np.array(y_train), nComp=nRankMax)
+pca_model, pca_weights, pca_bases = PCA_compress( Cls, nComp=nRankMax)
 GPy_fit(parameter_array, pca_weights)
 
-x_decoded2 = GPy_predict(np.expand_dims(parameter_array[del_idx][0], axis=0))
+x_decoded2 = Emu(np.expand_dims(parameter_array[del_idx][0], axis=0), PCAmodel='PCA_model', GPmodel= 'GPy_model')
 
 plt.figure(132)
 
@@ -213,12 +213,13 @@ for x_id in del_idx:
     # time0 = time.time()
     # x_decodedGPy = GP_predict(parameter_array[x_id])  ## input parameters
     # time1 = time.time()
-    print('Time per emulation %0.2f' % (time1 - time0), ' s')
+    # print('Time per emulation %0.2f' % (time1 - time0), ' s')
 
     # ax0.plot(l, 10 ** x_decodedGPy, alpha=1.0, ls='--', label='emu', color=plt.cm.Set1(color_id))
 
     time0 = time.time()
-    x_decoded_new = GPy_predict(np.expand_dims(parameter_array[x_id], axis=0))
+    x_decoded_new = Emu(np.expand_dims(parameter_array[x_id], axis=0), 'PCA_model',
+                        GPmodel='GPy_model')
 
     time1 = time.time()
     print('Time per emulation %0.2f' % (time1 - time0), ' s')
