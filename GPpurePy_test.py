@@ -15,8 +15,6 @@ SetPub.set_pub()
 
 import pickle
 
-###### R kernel imports from rpy2 #####
-
 ############################# PARAMETERS ##############################
 
 dirIn = "/home/nes/Desktop/AstroVAE/WL_emu/Codes/deprecated_codes/cl_outputs/"  ## Input Cl files
@@ -86,10 +84,45 @@ def Emu(para_array, PCAmodel):
     return x_decoded[0]
 
 
+
+######################## GP PREDICTION ###############################
+
+
+def GPy_predict(para_array, GPmodel='GPy_model'):
+    m1 = GPy.models.GPRegression.load_model(GPmodel + '.zip')
+
+    m1p = m1.predict(para_array)  # [0] is the mean and [1] the predictive
+    W_predArray = m1p[0]
+    W_varArray = m1p[1]
+    return W_predArray, W_varArray
+
+
+def Emu(para_array, PCAmodel, GPmodel):
+    pca_model = pickle.load(open(PCAmodel, 'rb'))
+
+    if len(para_array.shape) == 1:
+
+        W_predArray, _ = GPy_predict(np.expand_dims(para_array, axis=0), GPmodel)
+        x_decoded = pca_model.inverse_transform(W_predArray)
+
+        return x_decoded[0]
+
+    else:
+
+        W_predArray, _ = GPy_predict(para_array, GPmodel)
+        x_decoded = pca_model.inverse_transform(W_predArray)
+
+        return x_decoded.T
+
+
+
 ################################################################################
 
 
-x_decoded2 = Emu(np.expand_dims(parameter_array[del_idx][0], axis=0), PCAmodel='PCA_model')
+x_decoded2 = Emu(np.expand_dims(parameter_array[del_idx][0], axis=0), PCAmodel='PCA_model', GPmodel='GPy_model')
+
+
+
 
 plt.figure(132)
 
@@ -177,7 +210,7 @@ for x_id in del_idx:
     # ax0.plot(l, 10 ** x_decodedGPy, alpha=1.0, ls='--', label='emu', color=plt.cm.Set1(color_id))
 
     time0 = time.time()
-    x_decoded_new = Emu(np.expand_dims(parameter_array[x_id], axis=0), PCAmodel='PCA_model')
+    x_decoded_new = Emu(parameter_array[x_id], PCAmodel='PCA_model', GPmodel='GPy_model')
 
     time1 = time.time()
     print('Time per emulation %0.2f' % (time1 - time0), ' s')
@@ -201,7 +234,9 @@ ax1.set_xlim(l[0], l[-1])
 
 ax0.set_xticklabels([])
 
-plt.savefig('Plots/ClEmuGPy.png', figsize=(28, 24), bbox_inches="tight", dpi=900)
+# plt.savefig('Plots/ClEmuGPy.png', figsize=(28, 24), bbox_inches="tight", dpi=900)
+plt.savefig('Plots/ClEmuGPy.png', figsize=(28, 24), bbox_inches="tight")
+
 plt.show()
 
 #### Plot PCA bases and weights ####
