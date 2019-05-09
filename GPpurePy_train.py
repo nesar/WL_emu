@@ -15,8 +15,6 @@ SetPub.set_pub()
 
 import pickle
 
-###### R kernel imports from rpy2 #####
-
 ############################# PARAMETERS ##############################
 
 dirIn = "/home/nes/Desktop/AstroVAE/WL_emu/Codes/deprecated_codes/cl_outputs/"  ## Input Cl files
@@ -30,29 +28,27 @@ num_holdout = 4
 filelist = glob.glob(dirIn + 'cls*')
 filelist = sorted(filelist, key=lambda x: int(os.path.splitext(x)[0][72:]))
 
-Cls = np.array([np.loadtxt(f) for f in filelist])
+Cls_all = np.array([np.loadtxt(f) for f in filelist])
 
 # Cl_nan = np.unique(np.array(np.argwhere(np.isnan(Cls)) )[:,0])
-nan_idx = [~np.isnan(Cls).any(axis=1)]
+nan_idx = [~np.isnan(Cls_all).any(axis=1)]
 
-Cls = Cls[nan_idx]
+Cls_all = Cls_all[nan_idx]
 
-l = np.arange(Cls.shape[1])[1:]
+l = np.arange(Cls_all.shape[1])[1:]
 
-Cls = np.log10(Cls[:, 1::])
-
+Cls_all = np.log10(Cls_all[:, 1::])
 
 del_idx = [20, 55, 60, 75]
-Cls = np.delete(Cls, del_idx, axis=0)
-
+Cls = np.delete(Cls_all, del_idx, axis=0)
 
 nr, nc = Cls.shape
 
-parameter_array = np.loadtxt(paramIn)
-parameter_array = parameter_array[nan_idx]
+parameter_array_all = np.loadtxt(paramIn)
+parameter_array_all = parameter_array_all[nan_idx]
 
 # parameter_array = parameter_array[rand_idx, :]
-parameter_array = np.delete(parameter_array, del_idx, axis=0)
+parameter_array = np.delete(parameter_array_all, del_idx, axis=0)
 
 # nr, nc = parameter_array[num_holdout:, :].shape
 # u_train = ro.r.matrix(parameter_array[num_holdout:, :], nrow=nr, ncol=nc)
@@ -79,7 +75,6 @@ def PCA_compress(x, nComp):
     return pca_model, np.array(principalComponents), np.array(pca_bases)
 
 
-
 ######################## GP FITTING ################################
 
 ## Build GP models
@@ -90,7 +85,7 @@ import GPy
 
 
 def GPy_fit(parameter_array, weights, fname='GPy_model'):
-    kern = GPy.kern.Matern52( np.shape(parameter_array)[1], 0.1)
+    kern = GPy.kern.Matern52(np.shape(parameter_array)[1], 0.1)
     m1 = GPy.models.GPRegression(parameter_array, weights, kernel=kern)
     m1.Gaussian_noise.variance.constrain_fixed(1e-16)
     m1.optimize(messages=True)
@@ -107,9 +102,6 @@ def GPy_predict(para_array, GPmodel='GPy_model'):
     W_predArray = m1p[0]
     W_varArray = m1p[1]
     return W_predArray, W_varArray
-
-
-
 
 
 def Emu(para_array, PCAmodel, GPmodel):
@@ -134,17 +126,19 @@ def Emu(para_array, PCAmodel, GPmodel):
 
 
 # plt.plot(pca_model.explained_variance_ratio_)
-pca_model, pca_weights, pca_bases = PCA_compress( Cls, nComp=nRankMax)
+pca_model, pca_weights, pca_bases = PCA_compress(Cls, nComp=nRankMax)
 GPy_fit(parameter_array, pca_weights)
 
-x_decoded2 = Emu(parameter_array[del_idx][0], PCAmodel='PCA_model', GPmodel= 'GPy_model')
+x_decoded2 = Emu(parameter_array[del_idx][0], PCAmodel='PCA_model', GPmodel='GPy_model')
+
+
+
 
 plt.figure(132)
 
 plt.loglog(l, 10 ** x_decoded2, '--')
 
-
-x_decoded2 = Emu(parameter_array[del_idx], PCAmodel='PCA_model', GPmodel= 'GPy_model')
+x_decoded2 = Emu(parameter_array_all[del_idx], PCAmodel='PCA_model', GPmodel='GPy_model')
 
 plt.figure(132)
 
@@ -216,7 +210,7 @@ ax0.set_xscale('log', base=10)
 ax1.set_xscale('log', base=10)
 
 ax1.set_ylabel(r'emu/real - 1')
-ax1.set_ylim(-5e-4, 5e-4)
+ax1.set_ylim(-5e-3, 5e-3)
 
 ax0.plot(l, 10 ** Cls.T, alpha=0.03, color='k')
 
@@ -234,15 +228,16 @@ for x_id in del_idx:
     # ax0.plot(l, 10 ** x_decodedGPy, alpha=1.0, ls='--', label='emu', color=plt.cm.Set1(color_id))
 
     time0 = time.time()
-    x_decoded_new = Emu(np.expand_dims(parameter_array[x_id], axis=0), PCAmodel='PCA_model',
-                        GPmodel='GPy_model')
+    #x_decoded_new = Emu(np.expand_dims(parameter_array[x_id], axis=0), PCAmodel='PCA_model', GPmodel='GPy_model')
+
+    x_decoded_new = Emu(parameter_array_all[x_id], PCAmodel='PCA_model', GPmodel='GPy_model')
 
     time1 = time.time()
     print('Time per emulation %0.2f' % (time1 - time0), ' s')
 
     ax0.plot(l, 10 ** x_decoded_new, alpha=1.0, ls='--', label='emu', color=plt.cm.Set1(color_id))
 
-    x_test = Cls[x_id]
+    x_test = Cls_all[x_id]
     ax0.plot(l, 10 ** x_test, alpha=0.9, label='real', color=plt.cm.Set1(color_id))
 
     # ax1.plot(l, (10 ** x_decodedGPy) / (10 ** x_test) - 1, color=plt.cm.Set1(color_id))
@@ -260,7 +255,9 @@ ax1.set_xlim(l[0], l[-1])
 
 ax0.set_xticklabels([])
 
-plt.savefig('Plots/ClEmu.png', figsize=(28, 24), bbox_inches="tight", dpi=900)
+# plt.savefig('Plots/ClEmu.png', figsize=(28, 24), bbox_inches="tight", dpi=900)
+plt.savefig('Plots/ClEmu.png', figsize=(28, 24), bbox_inches="tight")
+
 plt.show()
 
 #### Plot PCA bases and weights ####
@@ -330,5 +327,4 @@ def lnlike(theta, x, y, yerr):
     model = GP_predict(new_params)
     # return -0.5 * (np.sum(((y - model) / yerr) ** 2.))
     return -0.5 * (np.sum(((y - model) / yerr) ** 2.))
-
 
