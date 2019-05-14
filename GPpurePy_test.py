@@ -17,8 +17,8 @@ import pickle
 
 ############################# PARAMETERS ##############################
 
-dirIn = "/home/nes/Desktop/AstroVAE/WL_emu/Codes/deprecated_codes/cl_outputs/"  ## Input Cl files
-paramIn = "/home/nes/Desktop/AstroVAE/WL_emu/Codes/lhc_128.txt"  ## 8 parameter file
+dirIn = "/Users/nramachandra/Desktop/Projects/WL_emu/Codes/deprecated_codes/cl_outputs/"  ## Input Cl files
+paramIn = "./Codes/lhc_128.txt"  ## 8 parameter file
 nRankMax = 32  ## Number of basis vectors in truncated PCA
 
 num_holdout = 4
@@ -26,7 +26,7 @@ num_holdout = 4
 
 
 filelist = glob.glob(dirIn + 'cls*')
-filelist = sorted(filelist, key=lambda x: int(os.path.splitext(x)[0][72:]))
+filelist = sorted(filelist, key=lambda x: int(os.path.splitext(x)[0][82:]))
 
 Cls = np.array([np.loadtxt(f) for f in filelist])
 

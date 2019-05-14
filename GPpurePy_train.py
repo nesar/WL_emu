@@ -17,8 +17,8 @@ import pickle
 
 ############################# PARAMETERS ##############################
 
-dirIn = "/home/nes/Desktop/AstroVAE/WL_emu/Codes/deprecated_codes/cl_outputs/"  ## Input Cl files
-paramIn = "/home/nes/Desktop/AstroVAE/WL_emu/Codes/lhc_128.txt"  ## 8 parameter file
+dirIn = "/Users/nramachandra/Desktop/Projects/WL_emu/Codes/deprecated_codes/cl_outputs/"  ## Input Cl files
+paramIn = "./Codes/lhc_128.txt"  ## 8 parameter file
 nRankMax = 32  ## Number of basis vectors in truncated PCA
 
 num_holdout = 4
@@ -26,7 +26,7 @@ num_holdout = 4
 
 
 filelist = glob.glob(dirIn + 'cls*')
-filelist = sorted(filelist, key=lambda x: int(os.path.splitext(x)[0][72:]))
+filelist = sorted(filelist, key=lambda x: int(os.path.splitext(x)[0][82:]))
 
 Cls_all = np.array([np.loadtxt(f) for f in filelist])
 
@@ -39,7 +39,7 @@ l = np.arange(Cls_all.shape[1])[1:]
 
 Cls_all = np.log10(Cls_all[:, 1::])
 
-del_idx = [20, 55, 60, 75]
+del_idx = [20, 55, 30, 15]
 Cls = np.delete(Cls_all, del_idx, axis=0)
 
 nr, nc = Cls.shape
@@ -87,7 +87,8 @@ import GPy
 def GPy_fit(parameter_array, weights, fname='GPy_model'):
     kern = GPy.kern.Matern52(np.shape(parameter_array)[1], 0.1)
     m1 = GPy.models.GPRegression(parameter_array, weights, kernel=kern)
-    m1.Gaussian_noise.variance.constrain_fixed(1e-16)
+    # m1 = GPy.models.GPRegression(parameter_array, weights)
+    m1.Gaussian_noise.variance.constrain_fixed(5e-1)
     m1.optimize(messages=True)
     m1.save_model(fname, compress=True, save_data=True)
 
@@ -205,12 +206,12 @@ ax1.axhline(y=0, ls='dashed')
 
 ax1.set_xlabel(r'$l$', fontsize=15)
 
-ax0.set_yscale('log', base=10)
-ax0.set_xscale('log', base=10)
-ax1.set_xscale('log', base=10)
+ax0.set_yscale('log')
+ax0.set_xscale('log')
+ax1.set_xscale('log')
 
 ax1.set_ylabel(r'emu/real - 1')
-ax1.set_ylim(-5e-3, 5e-3)
+ax1.set_ylim(-5e-2, 5e-2)
 
 ax0.plot(l, 10 ** Cls.T, alpha=0.03, color='k')
 
